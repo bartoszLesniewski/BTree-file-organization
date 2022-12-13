@@ -2,15 +2,15 @@ import os.path
 
 from DataPage import DataPage
 from IndexPage import IndexPage
-from constans import BYTE_ORDER, INT_SIZE
+from constans import BYTE_ORDER, INT_SIZE, MAX_INT
 
 
 class FilesHandler:
-    def __init__(self, index_filename="index.txt", data_filename="data.txt"):
-        self.index_page = IndexPage()
-        self.data_file_page = DataPage()
+    def __init__(self, records_per_page, index_filename="index.txt", data_filename="data.txt"):
+        self.data_file_page = DataPage(records_per_page)
         self.index_filename = index_filename
         self.data_filename = data_filename
+        self.records_per_page = records_per_page
 
     def add_entries(self, record):
         if self.index_page.is_full():
@@ -21,8 +21,9 @@ class FilesHandler:
         self.data_file_page.add_record(record)
         self.index_page.add_entry(record[0], self.data_file_page.page_number)
 
-    def save_index_page(self):
+    def save_index_page(self, page_number=1):
         with open(self.index_filename, "ab") as file:
+            file.seek((page_number - 1) * self.index_page.max_size)
             serialized_entries = self.index_page.serialize()
             for entry in serialized_entries:
                 file.write(entry)
@@ -30,11 +31,29 @@ class FilesHandler:
     def save_data_file_page(self):
         pass
 
-    def load_index_page(self):
+    def load_index_page(self, page_number=1):  # == load BTreeNode
+        index_page = IndexPage(self.records_per_page, page_number)
         with open(self.index_filename, "rb") as file:
-            while file.tell() < os.path.getsize(self.index_filename):
-                key = int.from_bytes(file.read(INT_SIZE), BYTE_ORDER)
-                page = int.from_bytes(file.read(INT_SIZE), BYTE_ORDER)
+            file.seek((page_number - 1) * index_page.max_size)
 
-                print(key)
-                print(page)
+            read_bytes = 0
+            read_counter = 0
+            while read_bytes < index_page.max_size:
+                number = int.from_bytes(file.read(INT_SIZE), BYTE_ORDER)
+                if read_counter % 3 == 0:
+                    if number == MAX_INT:
+                        number = None
+
+                    index_page.pointers.append(number)
+                    read_bytes += INT_SIZE
+                    read_counter += 1
+                else:
+                    key = number
+                    page = int.from_bytes(file.read(INT_SIZE), BYTE_ORDER)
+                    index_page.records.append([key, page])
+                    read_bytes += 2 * INT_SIZE
+                    read_counter += 2
+
+            print(index_page.records)
+            print(index_page.pointers)
+            return index_page

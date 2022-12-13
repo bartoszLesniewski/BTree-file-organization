@@ -3,6 +3,7 @@ from BTree import BTree
 
 def main():
     btree = BTree()
+    btree.filesHandler.load_index_page()
     while True:
         command = input("Please enter the command: ")
         command = command.split()
