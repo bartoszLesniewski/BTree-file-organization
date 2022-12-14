@@ -6,13 +6,18 @@ def main():
     while True:
         command = input("Please enter the command: ")
         command = command.split()
-        records = command[1:]
-        records = [int(record) for record in records]
+        args = command[1:]
+        if len(args) == 1:
+            args = int(args[0])
+        else:
+            args = [int(arg) for arg in args]
 
-        if command[0] == "INSERT":
-            btree.insert(records)
-        elif command[0] == "PRINT":
+        if command[0].upper() == "INSERT":
+            btree.insert(args)
+        elif command[0].upper() == "PRINT":
             btree.print()
+        elif command[0].upper() == "SEARCH":
+            btree.search(args, 1, True)
         elif command[0] == "EXIT":
             break
 

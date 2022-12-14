@@ -9,7 +9,9 @@ class BTree:
 
     def insert(self, record):
         # self.filesHandler.add_entries(record)
-        root_node = None
+        if self.search(record[0], self.root_page):
+            print(f"KEY {record[0]} ALREADY EXISTS!")
+            return
 
         if self.root_page is None:
             root_node = self.filesHandler.create_new_page()
@@ -83,13 +85,25 @@ class BTree:
 
         print(") ", end="")
 
+    def search(self, key, page, print_message=False):
+        if page is None or self.root_page is None:
+            if print_message:
+                print("KEY NOT FOUND")
+            return False
 
+        node = self.filesHandler.load_index_page(page)
+        i = 0
 
+        while i < len(node.records) and key > node.records[i][0]:
+            i += 1
 
+        if i < len(node.records) and key == node.records[i][0]:
+            if print_message:
+                print(f"KEY FOUND: {node.records[i]}")
+            return True
+        else:
+            if node.is_leaf():
+                print("KEY NOT FOUND")
+                return False
 
-
-
-
-
-
-
+            return self.search(key, node.pointers[i])
