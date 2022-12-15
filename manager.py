@@ -67,7 +67,7 @@ class Manager:
             elif action == "PRINT-KEYS":
                 self.btree.print()
             elif action == "PRINT-RECORDS":
-                self.btree.print_records()  # not implemented yet
+                self.btree.print(print_records=True)
             elif action == "SEARCH":
                 self.btree.search(value, 1, True)
             elif action == "EXIT":
@@ -99,4 +99,15 @@ class Manager:
         return None, None
 
     def read_commands_from_file(self):
-        raise NotImplementedError
+        with open("tests.txt", "r") as file:
+            for line in file.readlines():
+                if line == "PRINT\n":
+                    self.btree.print()
+                elif line == "PRINT-RECORDS\n":
+                    self.btree.print(print_records=True)
+                else:
+                    line = line.split()
+                    val = line[1]
+                    val = [int(val), 1]
+                    self.btree.insert(val)
+

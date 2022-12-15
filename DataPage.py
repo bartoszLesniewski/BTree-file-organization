@@ -49,3 +49,10 @@ class DataPage:
                     bytes_entries.append(MAX_INT.to_bytes(INT_SIZE, BYTE_ORDER))
 
         return bytes_entries
+
+    def print_record(self, key):
+        for record in self.records:
+            if record.key == key:
+                record.print()
+                break
+                

@@ -5,7 +5,7 @@ class BTree:
     def __init__(self, d=2):
         self.d = d
         self.root_page = None  # root page address
-        self.filesHandler = FilesHandler(2*d)
+        self.filesHandler = FilesHandler(2 * d)
 
     def insert(self, record):
         # self.filesHandler.add_entries(record)
@@ -44,7 +44,7 @@ class BTree:
 
         if not son_node.is_leaf():
             new_node.pointers = son_node.pointers[middle + 1:]
-            son_node.pointers = son_node.pointers[0: middle]
+            son_node.pointers = son_node.pointers[0: middle + 1]  # or 0:middle
 
         self.filesHandler.save_index_page(son_node)
         self.filesHandler.save_index_page(parent_node)
@@ -64,15 +64,15 @@ class BTree:
             if len(child.records) == 2 * self.d:
                 # fix it - save information about number of keys on the page
                 can_compensate = False
-                if i - 1 >= 0:
+                if i - 1 >= 0 and child.is_leaf():
                     left_neighbour = self.filesHandler.load_index_page(node.pointers[i - 1])
                     if len(left_neighbour.records) < 2 * self.d:
-                        self.compensation(left_neighbour, child, node, i - 1)
+                        self.compensation(left_neighbour, child, node, i - 1, record)
                         can_compensate = True
-                if not can_compensate and i + 1 < len(node.pointers) - 1:
+                if not can_compensate and i + 1 < len(node.pointers) and child.is_leaf():
                     right_neighbour = self.filesHandler.load_index_page(node.pointers[i + 1])
                     if len(right_neighbour.records) < 2 * self.d:
-                        self.compensation(child, right_neighbour, node, i)
+                        self.compensation(child, right_neighbour, node, i, record)
                         can_compensate = True
                 if not can_compensate:
                     self.split_child(node, i, child)
@@ -80,41 +80,70 @@ class BTree:
                     if record[0] > node.records[i][0]:
                         child = self.filesHandler.load_index_page(node.pointers[i + 1])
 
-            self.insert_non_full(child, record)
+                    self.insert_non_full(child, record)
+            else:
+                self.insert_non_full(child, record)
 
-    def compensation(self, left_neighbour, right_neighbour, ancestor, i):
+    def compensation(self, left_neighbour, right_neighbour, ancestor, i, record):
+        # records_distribution_list = left_neighbour.records + [ancestor.records[i]] + right_neighbour.records
+        # pointers_distribution_list = left_neighbour.pointers + right_neighbour.pointers
+        # partition = len(records_distribution_list) // 2
+
         records_distribution_list = left_neighbour.records + [ancestor.records[i]] + right_neighbour.records
-        pointers_distribution_list = left_neighbour.pointers + right_neighbour.pointers
-        partition = len(records_distribution_list) // 2
 
-        left_neighbour.records = records_distribution_list[0:partition]
-        left_neighbour.pointers = pointers_distribution_list[0:partition + 1]
-        right_neighbour.records = records_distribution_list[partition + 1:]
-        right_neighbour.pointers = pointers_distribution_list[partition + 1:]
-        ancestor.records[i] = records_distribution_list[partition]
+        j = len(records_distribution_list) - 1
+        while j >= 0 and record[0] < records_distribution_list[j][0]:
+            j -= 1
+
+        records_distribution_list.insert(j + 1, record)
+        pointers_distribution_list = left_neighbour.pointers + right_neighbour.pointers
+        middle = len(records_distribution_list) // 2
+
+        left_neighbour.records = records_distribution_list[0:middle]
+        right_neighbour.records = records_distribution_list[middle + 1:]
+        ancestor.records[i] = records_distribution_list[middle]
+
+        if not left_neighbour.is_leaf():
+            left_neighbour.pointers = pointers_distribution_list[0:middle + 1]
+            right_neighbour.pointers = pointers_distribution_list[middle + 1:]
+            print("AAAAA NOT LEAF ;-;")
+
+        # records_distribution_list[middle], ancestor.records[i] = ancestor.records[i], records_distribution_list[middle]
+        # left_neighbour.records = records_distribution_list[0:middle]  # exclude middle
+        # left_neighbour.pointers = pointers_distribution_list[0:middle + 1]  # exclude middle + 1
+        # right_neighbour.records = records_distribution_list[middle:]  # include middle
+        # right_neighbour.pointers = pointers_distribution_list[middle + 1:]  # include middle + 1
+        # ancestor.records[i] = records_distribution_list[partition]
 
         self.filesHandler.save_index_page(left_neighbour)
         self.filesHandler.save_index_page(right_neighbour)
         self.filesHandler.save_index_page(ancestor)
 
-    def print(self):
+    def print(self, print_records=False):
         if self.root_page is not None:
             root_node = self.filesHandler.load_index_page(self.root_page)
-            self.visit_node(root_node)
+            self.visit_node(root_node, print_records)
             print()
 
-    def visit_node(self, node):
-        print("( ", end="")
+    def visit_node(self, node, print_records=False):
+        if not print_records:
+            print("( ", end="")
 
         for i in range(len(node.records)):
             if not node.is_leaf():
-                self.visit_node(self.filesHandler.load_index_page(node.pointers[i]))
-            print(node.records[i][0], end=" ")
+                self.visit_node(self.filesHandler.load_index_page(node.pointers[i]), print_records)
+
+            if not print_records:
+                print(node.records[i][0], end=" ")
+            else:
+                data_page = self.filesHandler.load_data_page(node.records[i][1])
+                data_page.print_record(node.records[i][0])
 
         if not node.is_leaf():
-            self.visit_node(self.filesHandler.load_index_page(node.pointers[len(node.records)]))
+            self.visit_node(self.filesHandler.load_index_page(node.pointers[len(node.records)]), print_records)
 
-        print(") ", end="")
+        if not print_records:
+            print(") ", end="")
 
     def search(self, key, page, print_message=False):
         if page is None or self.root_page is None:

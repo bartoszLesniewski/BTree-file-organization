@@ -9,5 +9,5 @@ class Record:
 
     def print(self):
         print(self.key, end=": ")
-        print(self.numbers, end="")
+        print(self.numbers)
 

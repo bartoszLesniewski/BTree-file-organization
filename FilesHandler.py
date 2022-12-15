@@ -10,8 +10,8 @@ class FilesHandler:
         self.data_filename = data_filename
         self.records_per_page = records_per_page
         self.last_data_page = None
-        # open(self.index_filename, "w").close()
-        # open(self.data_filename, "w").close()
+        open(self.index_filename, "w").close()
+        open(self.data_filename, "w").close()
 
     # def add_entries(self, record):
     #     if self.index_page.is_full():
