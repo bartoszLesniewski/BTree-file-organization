@@ -13,14 +13,17 @@ class BTree:
             print(f"KEY {record[0]} ALREADY EXISTS!")
             return
 
+        data_page_number = self.filesHandler.add_record_to_data_file(record)
+        record = [record[0], data_page_number]
+
         if self.root_page is None:
-            root_node = self.filesHandler.create_new_page()
+            root_node = self.filesHandler.create_new_index_page()
             self.root_page = root_node.page_number
         else:
             root_node = self.filesHandler.load_index_page(self.root_page)
 
         if len(root_node.records) == 2 * self.d:
-            new_root_node = self.filesHandler.create_new_page()
+            new_root_node = self.filesHandler.create_new_index_page()
             new_root_node.pointers.append(self.root_page)
             self.split_child(new_root_node, 0, root_node)
             self.root_page = new_root_node.page_number
@@ -32,7 +35,7 @@ class BTree:
         # son - overflown node
         # index - position of the son node in parent node
 
-        new_node = self.filesHandler.create_new_page()
+        new_node = self.filesHandler.create_new_index_page()
         middle = self.d - 1
         new_node.records = son_node.records[middle + 1:]
         parent_node.pointers.insert(index + 1, new_node.page_number)

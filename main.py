@@ -18,7 +18,7 @@ def main():
             btree.print()
         elif command[0].upper() == "SEARCH":
             btree.search(args, 1, True)
-        elif command[0] == "EXIT":
+        elif command[0].upper() == "EXIT":
             break
 
 
@@ -56,7 +56,16 @@ def io_test():
     page3_read = btree.filesHandler.load_index_page(3)
 
 
+def test_data():
+    btree = BTree()
+    page1 = btree.filesHandler.load_data_page(1)
+    page2 = btree.filesHandler.load_data_page(2)
+    pass
+    page3 = btree.filesHandler.load_data_page(123)
+    pass
+
 
 if __name__ == "__main__":
-    main()
+    # main()
     # io_test()
+    test_data()
