@@ -59,12 +59,40 @@ class BTree:
         else:
             child = self.filesHandler.load_index_page(node.pointers[i])
             if len(child.records) == 2 * self.d:
-                self.split_child(node, i, child)
+                # fix it - save information about number of keys on the page
+                can_compensate = False
+                if i - 1 >= 0:
+                    left_neighbour = self.filesHandler.load_index_page(node.pointers[i - 1])
+                    if len(left_neighbour.records) < 2 * self.d:
+                        self.compensation(left_neighbour, child, node, i - 1)
+                        can_compensate = True
+                if not can_compensate and i + 1 < len(node.pointers) - 1:
+                    right_neighbour = self.filesHandler.load_index_page(node.pointers[i + 1])
+                    if len(right_neighbour.records) < 2 * self.d:
+                        self.compensation(child, right_neighbour, node, i)
+                        can_compensate = True
+                if not can_compensate:
+                    self.split_child(node, i, child)
 
-                if record[0] > node.records[i][0]:
-                    child = self.filesHandler.load_index_page(node.pointers[i + 1])
+                    if record[0] > node.records[i][0]:
+                        child = self.filesHandler.load_index_page(node.pointers[i + 1])
 
             self.insert_non_full(child, record)
+
+    def compensation(self, left_neighbour, right_neighbour, ancestor, i):
+        records_distribution_list = left_neighbour.records + [ancestor.records[i]] + right_neighbour.records
+        pointers_distribution_list = left_neighbour.pointers + right_neighbour.pointers
+        partition = len(records_distribution_list) // 2
+
+        left_neighbour.records = records_distribution_list[0:partition]
+        left_neighbour.pointers = pointers_distribution_list[0:partition + 1]
+        right_neighbour.records = records_distribution_list[partition + 1:]
+        right_neighbour.pointers = pointers_distribution_list[partition + 1:]
+        ancestor.records[i] = records_distribution_list[partition]
+
+        self.filesHandler.save_index_page(left_neighbour)
+        self.filesHandler.save_index_page(right_neighbour)
+        self.filesHandler.save_index_page(ancestor)
 
     def print(self):
         if self.root_page is not None:
@@ -103,7 +131,8 @@ class BTree:
             return True
         else:
             if node.is_leaf():
-                print("KEY NOT FOUND")
+                if print_message:
+                    print("KEY NOT FOUND")
                 return False
 
             return self.search(key, node.pointers[i])
