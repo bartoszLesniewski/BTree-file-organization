@@ -1,25 +1,10 @@
 from BTree import BTree
+from manager import Manager
 
 
 def main():
-    btree = BTree()
-    while True:
-        command = input("Please enter the command: ")
-        command = command.split()
-        args = command[1:]
-        if len(args) == 1:
-            args = int(args[0])
-        else:
-            args = [int(arg) for arg in args]
-
-        if command[0].upper() == "INSERT":
-            btree.insert(args)
-        elif command[0].upper() == "PRINT":
-            btree.print()
-        elif command[0].upper() == "SEARCH":
-            btree.search(args, 1, True)
-        elif command[0].upper() == "EXIT":
-            break
+    manager = Manager()
+    manager.run()
 
 
 def io_test():
@@ -66,6 +51,6 @@ def test_data():
 
 
 if __name__ == "__main__":
-    # main()
+    main()
     # io_test()
-    test_data()
+    # test_data()
