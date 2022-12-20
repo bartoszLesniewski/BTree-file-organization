@@ -55,4 +55,3 @@ class DataPage:
             if record.key == key:
                 record.print()
                 break
-                

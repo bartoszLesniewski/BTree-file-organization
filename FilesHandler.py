@@ -12,6 +12,7 @@ class FilesHandler:
         self.last_data_page = None
         open(self.index_filename, "w").close()
         open(self.data_filename, "w").close()
+        self.index_page_buffer = []
 
     # def add_entries(self, record):
     #     if self.index_page.is_full():
@@ -36,7 +37,7 @@ class FilesHandler:
 
             read_bytes = 0
             read_counter = 0
-            while read_bytes < index_page.max_size:
+            while read_bytes < index_page.max_size - INT_SIZE:
                 number = int.from_bytes(file.read(INT_SIZE), BYTE_ORDER)
                 if read_counter % 3 == 0:
                     if number != MAX_INT:
@@ -46,12 +47,18 @@ class FilesHandler:
                 else:
                     key = number
                     page = int.from_bytes(file.read(INT_SIZE), BYTE_ORDER)
-                    if key == MAX_INT or page == MAX_INT:
-                        break
-                    else:
+                    # if key == MAX_INT or page == MAX_INT:
+                        # break
+                    #else:
+                    if key != MAX_INT or page != MAX_INT:
                         index_page.records.append([key, page])
-                        read_bytes += 2 * INT_SIZE
-                        read_counter += 2
+
+                    read_bytes += 2 * INT_SIZE
+                    read_counter += 2
+
+            parent_page = int.from_bytes(file.read(INT_SIZE), BYTE_ORDER)
+            if parent_page != MAX_INT:
+                index_page.parent_page = parent_page
 
             # print(index_page.records)
             # print(index_page.pointers)
