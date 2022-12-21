@@ -69,7 +69,7 @@ class Manager:
             elif action == "PRINT-RECORDS":
                 self.btree.print(print_records=True)
             elif action == "SEARCH":
-                self.btree.search(value, 1, True)
+                self.btree.search(value, True)
             elif action == "EXIT":
                 break
             else:

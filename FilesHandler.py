@@ -13,6 +13,9 @@ class FilesHandler:
         open(self.index_filename, "w").close()
         open(self.data_filename, "w").close()
         self.index_page_buffer = []
+        self.index_reads = 0
+        self.index_writes = 0
+        self.count_index = False
 
     # def add_entries(self, record):
     #     if self.index_page.is_full():
@@ -24,11 +27,21 @@ class FilesHandler:
     #     self.index_page.add_entry(record[0], self.data_file_page.page_number)
 
     def save_index_page(self, index_page):
-        with open(self.index_filename, "rb+") as file:
-            file.seek((index_page.page_number - 1) * index_page.max_size)
-            serialized_entries = index_page.serialize()
-            for entry in serialized_entries:
-                file.write(entry)
+        if index_page.is_dirty():
+            with open(self.index_filename, "rb+") as file:
+                file.seek((index_page.page_number - 1) * index_page.max_size)
+                serialized_entries = index_page.serialize()
+                for entry in serialized_entries:
+                    file.write(entry)
+
+            self.index_writes += 1
+
+    def get_index_page(self, page_number):
+        for index_page in self.index_page_buffer:
+            if index_page.page_number == page_number:
+                return index_page
+
+        return self.load_index_page(page_number)
 
     def load_index_page(self, page_number=1):  # == load BTreeNode
         index_page = IndexPage(self.records_per_page, page_number)
@@ -62,11 +75,14 @@ class FilesHandler:
 
             # print(index_page.records)
             # print(index_page.pointers)
-            return index_page
+        self.index_page_buffer.append(index_page)
+        self.index_reads += 1
+        return index_page
 
     def create_new_index_page(self):
         page = IndexPage(self.records_per_page)
-        self.save_index_page(page)
+        # self.save_index_page(page)
+        self.index_page_buffer.append(page)
         return page
 
     def add_record_to_data_file(self, record):
@@ -107,3 +123,8 @@ class FilesHandler:
                     data_page.records.append(record)
 
         return data_page
+
+    def reset_index_counters(self):
+        self.index_reads = 0
+        self.index_writes = 0
+        self.index_page_buffer = []

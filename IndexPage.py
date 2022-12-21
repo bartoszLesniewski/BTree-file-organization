@@ -3,6 +3,8 @@ from constans import INDEX_ENTRIES_PER_PAGE, INDEX_ENTRY_SIZE, INT_SIZE, BYTE_OR
 
 class IndexPage:
     next_page = 1
+    number_of_pages = 0
+    number_of_records = 0
 
     def __init__(self, records_per_page, page_number=None):
         self.records_per_page = records_per_page
@@ -18,24 +20,89 @@ class IndexPage:
         self.records = []
         self.pointers = []
         self.parent_page = None
+        self.dirty_bit = False
+        self.access_counter = 0
 
-    def add_entry(self, key, page_number):
-        if not self.records:
-            self.pointers.append(None)  # left son
-            self.current_size += INT_SIZE
+    def add_record(self, position, record):
+        self.records.insert(position, record)
+        self.dirty_bit = True
+        self.access_counter += 1
+        self.dirty_bit = True
 
-        self.records.append([key, page_number])
-        self.pointers.append(None)  # right son
-        self.current_size += 3 * INT_SIZE
+    def add_pointer(self, position, page_pointer):
+        self.pointers.insert(position, page_pointer)
+        self.dirty_bit = True
+        self.access_counter += 1
+        self.dirty_bit = True
+
+    def get_key(self, record_number):
+        self.access_counter += 1
+        return self.records[record_number][0]
+
+    def get_data_page_number(self, record_number):
+        self.access_counter += 1
+        return self.records[record_number][1]
+
+    def get_record(self, record_number):
+        self.access_counter += 1
+        return self.records[record_number]
+
+    def get_records(self, index_from=None, index_to=None):
+        self.access_counter += 1
+        if not index_from and not index_to:
+            return self.records
+        if index_from and index_to:
+            return self.records[index_from:index_to]
+        if index_from and not index_to:
+            return self.records[index_from:]
+
+        return self.records[:index_to]
+
+    def get_pointer(self, pointer_number):
+        self.access_counter += 1
+        return self.pointers[pointer_number]
+
+    def get_pointers(self, index_from=None, index_to=None):
+        self.access_counter += 1
+        if not index_from and not index_to:
+            return self.pointers
+        if index_from and index_to:
+            return self.pointers[index_from:index_to]
+        if index_from and not index_to:
+            return self.pointers[index_from:]
+
+        return self.pointers[:index_to]
+
+    def get_parent(self):
+        return self.parent_page
+
+    def set_record(self, record_number, new_record):
+        self.access_counter += 1
+        self.records[record_number] = new_record
+        self.dirty_bit = True
+
+    def set_records(self, new_records):
+        self.access_counter += 1
+        self.records = new_records
+        self.dirty_bit = True
+
+    def set_pointers(self, new_pointers):
+        self.access_counter += 1
+        self.pointers = new_pointers
+        self.dirty_bit = True
+
+    def set_parent(self, new_parent_page):
+        self.parent_page = new_parent_page
+        self.dirty_bit = True
 
     def is_full(self):
         return self.current_size == self.max_size
 
-    def clear_page(self):
+    def clear_page(self):  # probably never used
         self.current_size = 0
         self.records = []
         self.pointers = []
-        self.page_number += 1
+        self.page_number += 1  # ?
 
     def serialize(self):
         bytes_entries = []
@@ -72,4 +139,7 @@ class IndexPage:
                 return False
 
         return True
+
+    def is_dirty(self):
+        return self.dirty_bit
 
