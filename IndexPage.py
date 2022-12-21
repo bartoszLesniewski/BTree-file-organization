@@ -92,8 +92,20 @@ class IndexPage:
         self.dirty_bit = True
 
     def set_parent(self, new_parent_page):
+        self.access_counter += 1
         self.parent_page = new_parent_page
         self.dirty_bit = True
+
+    def remove_record(self, record):
+        self.access_counter += 1
+        self.records.remove(record)
+        self.dirty_bit += 1
+
+    def remove_pointer(self, pointer):
+        self.access_counter += 1
+        self.pointers.remove(pointer)
+        self.dirty_bit += 1
+
 
     def is_full(self):
         return self.current_size == self.max_size
@@ -142,4 +154,3 @@ class IndexPage:
 
     def is_dirty(self):
         return self.dirty_bit
-

@@ -70,6 +70,8 @@ class Manager:
                 self.btree.print(print_records=True)
             elif action == "SEARCH":
                 self.btree.search(value, True)
+            elif action == "REMOVE":
+                self.btree.remove(value)
             elif action == "EXIT":
                 break
             else:
