@@ -273,7 +273,7 @@ class BTree:
         if node.is_leaf() and i < len(node.records) and node.get_key(i) == key:
             self.remove_from_leaf(node, i)
         elif not node.is_leaf() and i < len(node.records) and node.get_key(i) == key:
-            self.remove_from_internal_node(key, node)
+            self.remove_from_internal_node(node, i)
         elif node.is_leaf() and (i > len(node.records) or (i < len(node.records) and node.get_key(i) != key)):
             print(f"Record can't be deleted because there is no record with key {key}!")
         else:
@@ -341,5 +341,39 @@ class BTree:
         self.filesHandler.save_index_page(neighbour)
         self.filesHandler.save_index_page(parent)
 
-    def remove_from_internal_node(self, key, node):
-        print("Remove from internal node not implemented yet.")
+    def remove_from_internal_node(self, node, i):
+        left_child = self.filesHandler.get_index_page(node.get_pointer(i))
+        if len(left_child.records) > self.d:
+            leaf_node, predecessor = self.find_predecessor(left_child)
+            node.set_record(i, predecessor)
+            self.filesHandler.save_index_page(node)
+            self.remove_from_node(predecessor[0], leaf_node)
+        else:
+            right_child = self.filesHandler.get_index_page(node.get_pointer(i + 1))
+            if len(right_child.records) > self.d:
+                leaf_node, successor = self.find_successor(right_child)
+                node.set_record(i, successor)
+                self.filesHandler.save_index_page(node)
+                self.remove_from_node(successor[0], leaf_node)
+            else:
+                leaf_node, predecessor = self.find_predecessor(left_child)
+                node.set_record(i, predecessor)
+                self.filesHandler.save_index_page(node)
+                self.remove_from_node(predecessor[0], leaf_node)
+
+    def find_predecessor(self, node):
+        predecessor = node.get_record(-1)
+        while not node.is_leaf():
+            node = self.filesHandler.get_index_page(node.get_pointer(-1))
+            predecessor = node.get_record(-1)
+
+        return node, predecessor
+
+    def find_successor(self, node):
+        successor = node.get_record(0)
+        while not node.is_leaf():
+            node = self.filesHandler.get_index_page(node.get_pointer(0))
+            successor = node.get_record(0)
+
+        return node, successor
+
