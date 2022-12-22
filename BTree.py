@@ -195,7 +195,6 @@ class BTree:
             self.filesHandler.save_index_page(child_node)
 
 
-
     def print(self, print_records=False):
         if self.root_page is not None:
             root_node = self.filesHandler.get_index_page(self.root_page)
@@ -284,10 +283,27 @@ class BTree:
         self.repair_node_after_removal(node)
 
     def repair_node_after_removal(self, node):
-        if len(node.records) < self.d:
+        if node.page_number != self.root_page and len(node.records) < self.d:
             can_compensate = self.try_compensation_for_remove(node)
             if not can_compensate:
-                print("Merge here.")
+                parent_node = self.filesHandler.get_index_page(node.get_parent())
+                i = parent_node.pointers.index(node.page_number)
+                if i + 1 < len(parent_node.pointers):
+                    right_neighbour = self.filesHandler.get_index_page(parent_node.get_pointer(i + 1))
+                    self.merge(node, right_neighbour, parent_node, i)
+                elif i - 1 >= 0:
+                    left_neighbour = self.filesHandler.get_index_page(parent_node.get_pointer(i - 1))
+                    self.merge(left_neighbour, node, parent_node, i - 1)
+                else:
+                    raise ValueError("This exception should never occur!")
+        elif node.page_number == self.root_page:
+            if len(node.records) == 0:
+                if not node.is_leaf():
+                    self.root_page = node.get_pointer(0)
+                else:
+                    self.root_page = None
+
+            self.filesHandler.save_index_page(node)
         else:
             self.filesHandler.save_index_page(node)
 
@@ -377,3 +393,18 @@ class BTree:
 
         return node, successor
 
+    def merge(self, node, neighbour, parent, i):
+        record_from_parent = parent.get_record(i)
+        node.set_records(node.get_records() + [record_from_parent] + neighbour.get_records())
+        if not node.is_leaf():
+            node.set_pointers(node.get_pointers() + neighbour.get_pointers())
+
+        parent.remove_record(record_from_parent)
+        parent.remove_pointer(neighbour.page_number)
+        neighbour.set_records([])
+        neighbour.set_pointers([])
+
+        self.filesHandler.save_index_page(node)
+        self.filesHandler.save_index_page(neighbour)
+        self.filesHandler.save_index_page(parent)
+        self.repair_node_after_removal(parent)
