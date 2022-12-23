@@ -1,6 +1,12 @@
 from constans import INDEX_ENTRIES_PER_PAGE, INDEX_ENTRY_SIZE, INT_SIZE, BYTE_ORDER, MAX_INT, INDEX_RECORD_SIZE
 
 
+class IndexRecord:
+    def __init__(self, key, data_page_number):
+        self.key = key
+        self.data_page_number = data_page_number
+
+
 class IndexPage:
     next_page = 1
     number_of_pages = 0
@@ -37,11 +43,11 @@ class IndexPage:
 
     def get_key(self, record_number):
         self.access_counter += 1
-        return self.records[record_number][0]
+        return self.records[record_number].key
 
     def get_data_page_number(self, record_number):
         self.access_counter += 1
-        return self.records[record_number][1]
+        return self.records[record_number].data_page_number
 
     def get_record(self, record_number):
         self.access_counter += 1
@@ -106,7 +112,6 @@ class IndexPage:
         self.pointers.remove(pointer)
         self.dirty_bit += 1
 
-
     def is_full(self):
         return self.current_size == self.max_size
 
@@ -125,8 +130,8 @@ class IndexPage:
             bytes_entries.append(MAX_INT.to_bytes(INT_SIZE, BYTE_ORDER))
 
         for index, record in enumerate(self.records):
-            bytes_entries.append(record[0].to_bytes(INT_SIZE, BYTE_ORDER))
-            bytes_entries.append(record[1].to_bytes(INT_SIZE, BYTE_ORDER))
+            bytes_entries.append(record.key.to_bytes(INT_SIZE, BYTE_ORDER))
+            bytes_entries.append(record.data_page_number.to_bytes(INT_SIZE, BYTE_ORDER))
 
             if self.pointers and len(self.pointers) > index + 1:
                 bytes_entries.append(self.pointers[index + 1].to_bytes(INT_SIZE, BYTE_ORDER))

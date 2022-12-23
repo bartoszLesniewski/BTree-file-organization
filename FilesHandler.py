@@ -1,5 +1,5 @@
 from DataPage import DataPage
-from IndexPage import IndexPage
+from IndexPage import IndexPage, IndexRecord
 from constans import BYTE_ORDER, INT_SIZE, MAX_INT, DATA_RECORD_LENGTH, DATA_RECORD_SIZE
 from record import Record
 
@@ -64,7 +64,7 @@ class FilesHandler:
                         # break
                     #else:
                     if key != MAX_INT or page != MAX_INT:
-                        index_page.records.append([key, page])
+                        index_page.records.append(IndexRecord(key, page))
 
                     read_bytes += 2 * INT_SIZE
                     read_counter += 2

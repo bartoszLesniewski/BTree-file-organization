@@ -1,4 +1,5 @@
 from FilesHandler import FilesHandler
+from IndexPage import IndexRecord
 
 
 class BTree:
@@ -11,7 +12,7 @@ class BTree:
     def insert(self, record):
         self.filesHandler.reset_index_counters()
         data_page_number = self.filesHandler.add_record_to_data_file(record)
-        record = [record[0], data_page_number]
+        record = IndexRecord(record[0], data_page_number)
 
         if self.root_page is None:
             root_node = self.create_root()
@@ -48,10 +49,10 @@ class BTree:
         return root_node
 
     def insert_into_node(self, record, node):
-        i = self.find_position(node, record[0])
+        i = self.find_position(node, record.key)
         #if i is None:
         #    raise Exception("Record already exists!")
-        if i < len(node.records) and node.get_key(i) == record[0]:
+        if i < len(node.records) and node.get_key(i) == record.key:
             raise ValueError
 
         if not node.is_leaf():
@@ -121,7 +122,7 @@ class BTree:
         records_distribution_list = left_child.get_records() + [parent.get_record(i)] + right_child.get_records()
 
         j = len(records_distribution_list) - 1
-        while j >= 0 and record[0] < records_distribution_list[j][0]:
+        while j >= 0 and record.key < records_distribution_list[j].key:
             j -= 1
         j += 1
         records_distribution_list.insert(j, record)
@@ -169,8 +170,8 @@ class BTree:
         return record_for_parent, new_node.page_number
 
     def insert_after_split(self, old_node, new_node, index, record, pointer):
-        if index > len(old_node.records) or (index < len(old_node.records) and record[0] > old_node.get_key(index)):
-            i = self.find_position(new_node, record[0])
+        if index > len(old_node.records) or (index < len(old_node.records) and record.key > old_node.get_key(index)):
+            i = self.find_position(new_node, record.key)
             new_node.add_record(i, record)
             if not new_node.is_leaf():
                 new_node.add_pointer(i + 1, pointer)
@@ -363,19 +364,19 @@ class BTree:
             leaf_node, predecessor = self.find_predecessor(left_child)
             node.set_record(i, predecessor)
             self.filesHandler.save_index_page(node)
-            self.remove_from_node(predecessor[0], leaf_node)
+            self.remove_from_node(predecessor.key, leaf_node)
         else:
             right_child = self.filesHandler.get_index_page(node.get_pointer(i + 1))
             if len(right_child.records) > self.d:
                 leaf_node, successor = self.find_successor(right_child)
                 node.set_record(i, successor)
                 self.filesHandler.save_index_page(node)
-                self.remove_from_node(successor[0], leaf_node)
+                self.remove_from_node(successor.key, leaf_node)
             else:
                 leaf_node, predecessor = self.find_predecessor(left_child)
                 node.set_record(i, predecessor)
                 self.filesHandler.save_index_page(node)
-                self.remove_from_node(predecessor[0], leaf_node)
+                self.remove_from_node(predecessor.key, leaf_node)
 
     def find_predecessor(self, node):
         predecessor = node.get_record(-1)
