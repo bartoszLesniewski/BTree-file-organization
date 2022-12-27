@@ -127,16 +127,24 @@ class FilesHandler:
         print(f"Number of writes: {self.index_writes}")
         print(f"B-Tree height: {btree_height}")
 
-    def print_index_file(self):
+    def print_file(self, file_type):
+        print(f"Structure of the {file_type} page:")
+        if file_type == "index":
+            print("p0 key address p1 key address p2 ... parent_pointer")
+            filename = self.index_filename
+            max_size = IndexPage.max_size
+        else:
+            print("key [record - 15 numbers]")
+            filename = self.data_filename
+            max_size = DataPage.max_size
+
         read_bytes = 0
-        print("Structure of the index page:")
-        print("p0 key address p1 key address p2 ... parent_pointer")
         page_number = 1
-        with open(self.index_filename, "rb") as file:
-            while read_bytes < os.path.getsize(self.index_filename):
+        with open(filename, "rb") as file:
+            while read_bytes < os.path.getsize(filename):
                 page_bytes = 0
                 print(f"PAGE {page_number}: ", end=" ")
-                while page_bytes < IndexPage.max_size:
+                while page_bytes < max_size:
                     num = int.from_bytes(file.read(INT_SIZE), BYTE_ORDER)
                     print(num, end=" ")
                     page_bytes += INT_SIZE

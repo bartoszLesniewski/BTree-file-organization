@@ -1,4 +1,4 @@
-from constans import INDEX_ENTRIES_PER_PAGE, INDEX_ENTRY_SIZE, INT_SIZE, BYTE_ORDER, MAX_INT, INDEX_RECORD_SIZE
+from constans import INT_SIZE, BYTE_ORDER, MAX_INT
 
 
 class IndexRecord:
@@ -134,7 +134,7 @@ class IndexPage:
             bytes_entries.append(record.key.to_bytes(INT_SIZE, BYTE_ORDER))
             bytes_entries.append(record.data_page_number.to_bytes(INT_SIZE, BYTE_ORDER))
 
-            if self.pointers: #  and len(self.pointers) > index + 1:
+            if self.pointers:  # and len(self.pointers) > index + 1:
                 bytes_entries.append(self.pointers[index + 1].to_bytes(INT_SIZE, BYTE_ORDER))
             else:
                 bytes_entries.append(MAX_INT.to_bytes(INT_SIZE, BYTE_ORDER))

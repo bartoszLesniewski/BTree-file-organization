@@ -81,7 +81,9 @@ class Manager:
             elif action == "PRINT-RECORDS":
                 self.btree.print(print_records=True)
             elif action == "PRINT-INDEX-FILE":
-                self.btree.filesHandler.print_index_file()
+                self.btree.filesHandler.print_file("index")
+            elif action == "PRINT-DATA-FILE":
+                self.btree.filesHandler.print_file("data")
             elif action == Command.SEARCH.value:
                 self.btree.search(value, True)
             elif action == Command.REMOVE.value:

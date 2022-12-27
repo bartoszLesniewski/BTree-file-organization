@@ -1,4 +1,4 @@
-from constans import DATA_RECORDS_PER_PAGE, DATA_RECORD_SIZE, INT_SIZE, BYTE_ORDER, MAX_INT, DATA_RECORD_LENGTH
+from constans import DATA_RECORD_SIZE, INT_SIZE, BYTE_ORDER, MAX_INT, DATA_RECORD_LENGTH
 
 
 class DataRecord:
@@ -16,10 +16,11 @@ class DataRecord:
 
 class DataPage:
     next_page = 1
+    max_size = 0
 
     def __init__(self, records_per_page, page_number=None):
         self.records_per_page = records_per_page
-        self.max_size = records_per_page * DATA_RECORD_SIZE
+        DataPage.max_size = records_per_page * DATA_RECORD_SIZE
         self.current_size = 0
         self.records = []
 
