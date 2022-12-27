@@ -1,5 +1,17 @@
 from constans import DATA_RECORDS_PER_PAGE, DATA_RECORD_SIZE, INT_SIZE, BYTE_ORDER, MAX_INT, DATA_RECORD_LENGTH
-from record import Record
+
+
+class DataRecord:
+    def __init__(self, key=None, numbers=None):
+        self.key = key
+        if numbers is None:
+            self.numbers = []
+        else:
+            self.numbers = numbers
+
+    def print(self):
+        print(self.key, end=": ")
+        print(self.numbers)
 
 
 class DataPage:
@@ -18,7 +30,7 @@ class DataPage:
             self.page_number = page_number
 
     def add_record(self, record):
-        self.records.append(Record(record[0], record[1:]))
+        self.records.append(DataRecord(record[0], record[1:]))
         self.current_size += DATA_RECORD_SIZE
 
     def is_full(self):
@@ -55,3 +67,12 @@ class DataPage:
             if record.key == key:
                 record.print()
                 break
+
+    def remove_record(self, key):
+        record_to_remove = None
+        for record in self.records:
+            if record.key == key:
+                record_to_remove = record
+                break
+
+        self.records.remove(record_to_remove)

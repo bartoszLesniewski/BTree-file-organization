@@ -6,8 +6,8 @@ class BTree:
     def __init__(self, d=2):
         self.d = d
         self.root_page = None  # root page address
-        self.filesHandler = FilesHandler(2 * d)
         self.h = 0
+        self.filesHandler = FilesHandler(2 * d, self.h)
 
     def insert(self, record):
         self.filesHandler.reset_index_counters()
@@ -24,9 +24,7 @@ class BTree:
             if record and child_pointer:
                 self.create_root(record, child_pointer)
 
-            print(f"Number of reads: {self.filesHandler.index_reads}")
-            print(f"Number of writes: {self.filesHandler.index_writes}")
-            print(f"B-Tree height: {self.h}")
+            self.filesHandler.print_index_reads_and_writes(self.h)
         except ValueError:
             print("Record already exists!")
 
@@ -50,8 +48,6 @@ class BTree:
 
     def insert_into_node(self, record, node):
         i = self.find_position(node, record.key)
-        #if i is None:
-        #    raise Exception("Record already exists!")
         if i < len(node.records) and node.get_key(i) == record.key:
             raise ValueError
 
@@ -128,9 +124,9 @@ class BTree:
         records_distribution_list.insert(j, record)
         middle = len(records_distribution_list) // 2
 
-        left_child.set_records(records_distribution_list[0:middle])  # left_child.records = records_distribution_list[0:middle]
-        right_child.set_records(records_distribution_list[middle + 1:])  # right_child.records = records_distribution_list[middle + 1:]
-        parent.set_record(i, records_distribution_list[middle])  # parent.records[i] = records_distribution_list[middle]
+        left_child.set_records(records_distribution_list[0:middle])
+        right_child.set_records(records_distribution_list[middle + 1:])
+        parent.set_record(i, records_distribution_list[middle])
 
         if not left_child.is_leaf():
             pointers_distribution_list = left_child.get_pointers() + right_child.get_pointers()
@@ -139,7 +135,6 @@ class BTree:
             right_child.set_pointers(pointers_distribution_list[middle + 1:])
             self.update_parent(pointers_distribution_list[0:middle + 1], left_child.page_number)
             self.update_parent(pointers_distribution_list[middle + 1:], right_child.page_number)
-            print("AAAAA NOT LEAF ;-;")
 
         self.filesHandler.save_index_page(left_child)  # change it
         self.filesHandler.save_index_page(right_child)  # change it
@@ -152,9 +147,7 @@ class BTree:
 
         record_for_parent = node.get_record(middle)
         new_node.set_records(node.get_records(middle+1))
-        new_node.set_parent(node.get_parent())  # set the same parent by default, it will be changed if it is necessary
-        # parent_node.add_pointer(index + 1, new_node.page_number)
-        # parent_node.add_record(index, son_node.records[middle])
+        new_node.set_parent(node.get_parent())  # set the same parent by default, it will be changed if necessary
         node.set_records(node.get_records(0, middle))
 
         if not node.is_leaf():
@@ -162,39 +155,17 @@ class BTree:
             pointers = node.get_pointers(middle + 1)
             new_node.set_pointers(pointers)
             self.update_parent(pointers, new_node.page_number)
-            node.set_pointers(node.get_pointers(0, middle + 1))  # or 0:middle
+            node.set_pointers(node.get_pointers(0, middle + 1))
 
-        # self.insert_after_split(node, new_node, index, record, pointer)
         self.filesHandler.save_index_page(node)
         self.filesHandler.save_index_page(new_node)
         return record_for_parent, new_node.page_number
 
-    def insert_after_split(self, old_node, new_node, index, record, pointer):
-        if index > len(old_node.records) or (index < len(old_node.records) and record.key > old_node.get_key(index)):
-            i = self.find_position(new_node, record.key)
-            new_node.add_record(i, record)
-            if not new_node.is_leaf():
-                new_node.add_pointer(i + 1, pointer)
-                self.update_parent([pointer], new_node.page_number)
-        else:
-            old_node.add_record(index, record)
-            if not old_node.is_leaf():
-                old_node.add_pointer(index + 1, pointer)
-
-        self.filesHandler.save_index_page(old_node)  # change it
-        self.filesHandler.save_index_page(new_node)  # change it
-        # self.update_parent(new_node)
-
     def update_parent(self, children_pointers, parent_page):
-        # for child_page in parent_node.get_pointers():
-        #     child_node = self.filesHandler.get_index_page(child_page)
-        #     child_node.set_parent(parent_node.page_number)
-        #     self.filesHandler.save_index_page(child_node)
         for child_page in children_pointers:
             child_node = self.filesHandler.get_index_page(child_page)
             child_node.set_parent(parent_page)
             self.filesHandler.save_index_page(child_node)
-
 
     def print(self, print_records=False):
         if self.root_page is not None:
@@ -257,27 +228,31 @@ class BTree:
             print("B-Tree is empty!")
         else:
             root_node = self.filesHandler.get_index_page(self.root_page)
-            self.remove_from_node(key, root_node)
-        #
-        # record, child_pointer = self.insert_into_node(record, root_node)
-        # if record and child_pointer:
-        #     self.create_root(record, child_pointer)
-        #
-        # print(f"Number of reads: {self.filesHandler.index_reads}")
-        # print(f"Number of writes: {self.filesHandler.index_writes}")
-        # print(f"B-Tree height: {self.h}")
+            data_page_number = self.remove_from_node(key, root_node)
+            if data_page_number:
+                data_page = self.filesHandler.load_data_page(data_page_number)
+                data_page.remove_record(key)
+                self.filesHandler.save_data_page(data_page)
+            else:
+                print(f"Record can't be deleted because there is no record with key {key}!")
+
+        self.filesHandler.print_index_reads_and_writes(self.h)
 
     def remove_from_node(self, key, node):
         i = self.find_position(node, key)
 
         if node.is_leaf() and i < len(node.records) and node.get_key(i) == key:
+            data_page_number = node.get_data_page_number(i)
             self.remove_from_leaf(node, i)
+            return data_page_number
         elif not node.is_leaf() and i < len(node.records) and node.get_key(i) == key:
+            data_page_number = node.get_data_page_number(i)
             self.remove_from_internal_node(node, i)
+            return data_page_number
         elif node.is_leaf() and (i > len(node.records) or (i < len(node.records) and node.get_key(i) != key)):
-            print(f"Record can't be deleted because there is no record with key {key}!")
+            return None  # record with such a key doesn't exist
         else:
-            self.remove_from_node(key, self.filesHandler.get_index_page(node.get_pointer(i)))
+            return self.remove_from_node(key, self.filesHandler.get_index_page(node.get_pointer(i)))
 
     def remove_from_leaf(self, node, i):
         node.remove_record(node.get_record(i))
@@ -301,8 +276,11 @@ class BTree:
             if len(node.records) == 0:
                 if not node.is_leaf():
                     self.root_page = node.get_pointer(0)
+                    self.update_parent(node.get_pointers(), None)
                 else:
                     self.root_page = None
+
+                self.h -= 1
 
             self.filesHandler.save_index_page(node)
         else:
@@ -343,14 +321,14 @@ class BTree:
         self.filesHandler.save_index_page(parent)
 
     def compensate_with_right_neighbour(self, node, neighbour, parent, i):
-        node.add_record(len(node.records) - 1, parent.get_record(i))
+        node.add_record(len(node.records), parent.get_record(i))
         record = neighbour.get_record(0)
         parent.set_record(i, record)
         neighbour.remove_record(record)
 
         if not node.is_leaf():
             pointer = neighbour.get_pointer(0)
-            node.add_pointer(len(node.pointers) - 1, pointer)
+            node.add_pointer(len(node.pointers), pointer)
             neighbour.remove_pointer(pointer)
             self.update_parent([pointer], node.page_number)
 
@@ -402,8 +380,10 @@ class BTree:
 
         parent.remove_record(record_from_parent)
         parent.remove_pointer(neighbour.page_number)
+        self.update_parent(neighbour.get_pointers(), node.page_number)
         neighbour.set_records([])
         neighbour.set_pointers([])
+        neighbour.set_parent(None)
 
         self.filesHandler.save_index_page(node)
         self.filesHandler.save_index_page(neighbour)

@@ -11,10 +11,11 @@ class IndexPage:
     next_page = 1
     number_of_pages = 0
     number_of_records = 0
+    max_size = 0
 
     def __init__(self, records_per_page, page_number=None):
         self.records_per_page = records_per_page
-        self.max_size = records_per_page * (3 * INT_SIZE) + INT_SIZE + INT_SIZE
+        IndexPage.max_size = records_per_page * (3 * INT_SIZE) + INT_SIZE + INT_SIZE
         self.current_size = 0
 
         if page_number is None:
@@ -133,7 +134,7 @@ class IndexPage:
             bytes_entries.append(record.key.to_bytes(INT_SIZE, BYTE_ORDER))
             bytes_entries.append(record.data_page_number.to_bytes(INT_SIZE, BYTE_ORDER))
 
-            if self.pointers and len(self.pointers) > index + 1:
+            if self.pointers: #  and len(self.pointers) > index + 1:
                 bytes_entries.append(self.pointers[index + 1].to_bytes(INT_SIZE, BYTE_ORDER))
             else:
                 bytes_entries.append(MAX_INT.to_bytes(INT_SIZE, BYTE_ORDER))

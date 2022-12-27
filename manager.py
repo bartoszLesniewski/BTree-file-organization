@@ -8,6 +8,15 @@ class Mode(Enum):
     EXIT = 3
 
 
+class Command(Enum):
+    INSERT = "INSERT"
+    PRINT = "PRINT"
+    SEARCH = "SEARCH"
+    REMOVE = "REMOVE"
+    UPDATE = "UPDATE"
+    EXIT = "EXIT"
+
+
 class Manager:
     def __init__(self):
         self.program_mode = None
@@ -60,19 +69,24 @@ class Manager:
             command = input("Please enter the command: ")
             action, value = self.parse_command(command)
 
-            if action == "INSERT":
-                self.btree.insert(value)
-            elif action == "PRINT":
+            if action == Command.INSERT.value:
+                if isinstance(value, list):
+                    self.btree.insert(value)
+                else:
+                    print("Insufficient number of parameters for INSERT operation!")
+            elif action == Command.PRINT.value:
                 self.btree.print()
             elif action == "PRINT-KEYS":
                 self.btree.print()
             elif action == "PRINT-RECORDS":
                 self.btree.print(print_records=True)
-            elif action == "SEARCH":
+            elif action == "PRINT-INDEX-FILE":
+                self.btree.filesHandler.print_index_file()
+            elif action == Command.SEARCH.value:
                 self.btree.search(value, True)
-            elif action == "REMOVE":
+            elif action == Command.REMOVE.value:
                 self.btree.remove(value)
-            elif action == "EXIT":
+            elif action == Command.EXIT.value:
                 break
             else:
                 print("Invalid command.")
@@ -110,6 +124,10 @@ class Manager:
                 else:
                     line = line.split()
                     val = line[1]
-                    val = [int(val), 1]
-                    self.btree.insert(val)
-
+                    if line[0] == "INSERT":
+                        val = [int(val), 1]
+                        self.btree.insert(val)
+                    else:
+                        if int(val) == 67:
+                            pass
+                        self.btree.remove(int(val))

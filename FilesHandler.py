@@ -1,11 +1,12 @@
-from DataPage import DataPage
+import os.path
+
+from DataPage import DataPage, DataRecord
 from IndexPage import IndexPage, IndexRecord
 from constans import BYTE_ORDER, INT_SIZE, MAX_INT, DATA_RECORD_LENGTH, DATA_RECORD_SIZE
-from record import Record
 
 
 class FilesHandler:
-    def __init__(self, records_per_page, index_filename="index.txt", data_filename="data.txt"):
+    def __init__(self, records_per_page, btree_height, index_filename="index.txt", data_filename="data.txt"):
         self.index_filename = index_filename
         self.data_filename = data_filename
         self.records_per_page = records_per_page
@@ -13,18 +14,10 @@ class FilesHandler:
         open(self.index_filename, "w").close()
         open(self.data_filename, "w").close()
         self.index_page_buffer = []
+        self.buffer_size = btree_height + 1
         self.index_reads = 0
         self.index_writes = 0
         self.count_index = False
-
-    # def add_entries(self, record):
-    #     if self.index_page.is_full():
-    #         self.save_index_page()
-    #     if self.data_file_page.is_full():
-    #         self.save_data_file_page()
-    #
-    #     self.data_file_page.add_record(record)
-    #     self.index_page.add_entry(record[0], self.data_file_page.page_number)
 
     def save_index_page(self, index_page):
         if index_page.is_dirty():
@@ -60,9 +53,6 @@ class FilesHandler:
                 else:
                     key = number
                     page = int.from_bytes(file.read(INT_SIZE), BYTE_ORDER)
-                    # if key == MAX_INT or page == MAX_INT:
-                        # break
-                    #else:
                     if key != MAX_INT or page != MAX_INT:
                         index_page.records.append(IndexRecord(key, page))
 
@@ -89,7 +79,7 @@ class FilesHandler:
         if self.last_data_page is None or self.last_data_page.is_full():
             self.last_data_page = DataPage(self.records_per_page)
 
-        self.last_data_page.records.append(Record(record[0], record[1:]))
+        self.last_data_page.records.append(DataRecord(record[0], record[1:]))
         self.save_data_page(self.last_data_page)
 
         return self.last_data_page.page_number
@@ -112,7 +102,7 @@ class FilesHandler:
                 if key == MAX_INT:
                     break
                 else:
-                    record = Record()
+                    record = DataRecord()
                     record.key = key
                     for _ in range(DATA_RECORD_LENGTH):
                         number = int.from_bytes(file.read(INT_SIZE), BYTE_ORDER)
@@ -128,3 +118,29 @@ class FilesHandler:
         self.index_reads = 0
         self.index_writes = 0
         self.index_page_buffer = []
+
+    def update_buffer_size(self, btree_height):
+        self.buffer_size = btree_height + 1
+
+    def print_index_reads_and_writes(self, btree_height):
+        print(f"Number of reads: {self.index_reads}")
+        print(f"Number of writes: {self.index_writes}")
+        print(f"B-Tree height: {btree_height}")
+
+    def print_index_file(self):
+        read_bytes = 0
+        print("Structure of the index page:")
+        print("p0 key address p1 key address p2 ... parent_pointer")
+        page_number = 1
+        with open(self.index_filename, "rb") as file:
+            while read_bytes < os.path.getsize(self.index_filename):
+                page_bytes = 0
+                print(f"PAGE {page_number}: ", end=" ")
+                while page_bytes < IndexPage.max_size:
+                    num = int.from_bytes(file.read(INT_SIZE), BYTE_ORDER)
+                    print(num, end=" ")
+                    page_bytes += INT_SIZE
+                    read_bytes += INT_SIZE
+                print()
+                page_number += 1
+
