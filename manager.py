@@ -129,6 +129,7 @@ class Manager:
         with open("tests.txt", "r") as file:
             for line in file.readlines():
                 if line == "PRINT\n":
+                    print("PRINT")
                     self.btree.print()
                 elif line == "PRINT-RECORDS\n":
                     self.btree.print(print_records=True)
@@ -141,8 +142,10 @@ class Manager:
                     val = line[1]
                     if line[0] == "INSERT":
                         val = [int(val), 1]
+                        print(f"INSERT {val}")
                         self.btree.insert(val)
                     else:
-                        if int(val) == 67:
+                        if int(val) == 74:
                             pass
+                        print(f"REMOVE {val}")
                         self.btree.remove(int(val))

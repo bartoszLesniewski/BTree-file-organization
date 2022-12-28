@@ -14,6 +14,7 @@ class FilesHandler:
         open(self.index_filename, "w").close()
         open(self.data_filename, "w").close()
         self.index_buffer = []
+        self.data_buffer = []
         self.index_reads = 0
         self.index_writes = 0
         self.count_index = False
@@ -70,9 +71,10 @@ class FilesHandler:
             del lru_page
             self.index_buffer.insert(0, index_page)
 
-    def remove_from_index_buffer(self, index_page):
+    def reduce_usage(self, index_page):
         self.index_buffer.remove(index_page)
-        del index_page
+        self.index_buffer.append(index_page)
+        # del index_page
 
     def get_index_page(self, page_number):
         for index_page in self.index_buffer:

@@ -111,19 +111,19 @@ class BTree:
                 if len(left_neighbour.records) < 2 * self.d:
                     self.compensation(left_neighbour, node, parent_node, index - 1, record, pointer)
                     can_compensate = True
-                # else:
-                #     # if compensation with the left neighbour failed, it will no longer be used
-                #     # so we can remove it from the buffer, so it doesn't take up space
-                #     self.filesHandler.remove_from_index_buffer(left_neighbour)
+                else:
+                    # if compensation with the left neighbour failed, it will no longer be used
+                    # so we can remove it from the buffer, so it doesn't take up space
+                    self.filesHandler.reduce_usage(left_neighbour)
             if not can_compensate and index + 1 < len(parent_node.pointers):
                 right_neighbour = self.filesHandler.get_index_page(parent_node.get_pointer(index + 1))
                 if len(right_neighbour.records) < 2 * self.d:
                     self.compensation(node, right_neighbour, parent_node, index, record, pointer)
                     can_compensate = True
-                # else:
-                #     # if compensation with the right neighbour failed, it will no longer be used
-                #     # so we can remove it from the buffer, so it doesn't take up space
-                #     self.filesHandler.remove_from_index_buffer(right_neighbour)
+                else:
+                    # if compensation with the right neighbour failed, it will no longer be used
+                    # so we can remove it from the buffer, so it doesn't take up space
+                    self.filesHandler.reduce_usage(right_neighbour)
 
         return can_compensate
 
@@ -273,7 +273,7 @@ class BTree:
 
     def remove_from_leaf(self, node, i):
         node.remove_record(node.get_record(i))
-        self.repair_node_after_removal(node)
+        self.repair_node_after_removal(self.filesHandler.get_index_page(node.page_number))
 
     def repair_node_after_removal(self, node):
         if node.page_number != self.root_page and len(node.records) < self.d:
@@ -318,20 +318,20 @@ class BTree:
                 if len(left_neighbour.records) > self.d:
                     self.compensate_with_left_neighbour(node, left_neighbour, parent_node, index - 1)
                     can_compensate = True
-                # else:
-                #     # if compensation with the left neighbour failed, it will no longer be used
-                #     # so we can remove it from the buffer, so it doesn't take up space
-                #     self.filesHandler.remove_from_index_buffer(left_neighbour)
+                else:
+                    # if compensation with the left neighbour failed, it will no longer be used
+                    # so we can remove it from the buffer, so it doesn't take up space
+                    self.filesHandler.reduce_usage(left_neighbour)
 
             if not can_compensate and index + 1 < len(parent_node.pointers):
                 right_neighbour = self.filesHandler.get_index_page(parent_node.get_pointer(index + 1))
                 if len(right_neighbour.records) > self.d:
                     self.compensate_with_right_neighbour(node, right_neighbour, parent_node, index)
                     can_compensate = True
-                # else:
-                #     # if compensation with the left neighbour failed, it will no longer be used
-                #     # so we can remove it from the buffer, so it doesn't take up space
-                #     self.filesHandler.remove_from_index_buffer(right_neighbour)
+                else:
+                    # if compensation with the left neighbour failed, it will no longer be used
+                    # so we can remove it from the buffer, so it doesn't take up space
+                    self.filesHandler.reduce_usage(right_neighbour)
 
         return can_compensate
 
@@ -372,24 +372,24 @@ class BTree:
         left_child = self.filesHandler.get_index_page(node.get_pointer(i))
         if len(left_child.records) > self.d:
             leaf_node, predecessor = self.find_predecessor(left_child)
-            self.filesHandler.get_index_page(node_page_number)
+            node = self.filesHandler.get_index_page(node_page_number)
             node.set_record(i, predecessor)
             # self.filesHandler.save_index_page(node)
             self.remove_from_node(predecessor.key, leaf_node)
         else:
-            # self.filesHandler.remove_from_index_buffer(left_child)
+            self.filesHandler.reduce_usage(left_child)
             right_child = self.filesHandler.get_index_page(node.get_pointer(i + 1))
             if len(right_child.records) > self.d:
                 leaf_node, successor = self.find_successor(right_child)
-                self.filesHandler.get_index_page(node_page_number)
+                node = self.filesHandler.get_index_page(node_page_number)
                 node.set_record(i, successor)
                 # self.filesHandler.save_index_page(node)
                 self.remove_from_node(successor.key, leaf_node)
             else:
-                # self.filesHandler.remove_from_index_buffer(right_child)
+                self.filesHandler.reduce_usage(right_child)
                 left_child = self.filesHandler.get_index_page(node.get_pointer(i))
                 leaf_node, predecessor = self.find_predecessor(left_child)
-                self.filesHandler.get_index_page(node_page_number)
+                node = self.filesHandler.get_index_page(node_page_number)
                 node.set_record(i, predecessor)
                 # self.filesHandler.save_index_page(node)
                 self.remove_from_node(predecessor.key, leaf_node)
@@ -424,7 +424,7 @@ class BTree:
         parent.remove_pointer(neighbour.page_number)
         self.update_parent(neighbour.get_pointers(), node.page_number)
 
-        self.filesHandler.get_index_page(neighbour_page_number)  # because it may have been removed from the buffer
+        neighbour = self.filesHandler.get_index_page(neighbour_page_number)
         neighbour.set_records([])
         neighbour.set_pointers([])
         neighbour.set_parent(None)

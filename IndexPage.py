@@ -32,11 +32,9 @@ class IndexPage:
     def add_record(self, position, record):
         self.records.insert(position, record)
         self.dirty_bit = True
-        self.dirty_bit = True
 
     def add_pointer(self, position, page_pointer):
         self.pointers.insert(position, page_pointer)
-        self.dirty_bit = True
         self.dirty_bit = True
 
     def get_key(self, record_number):
@@ -92,11 +90,11 @@ class IndexPage:
 
     def remove_record(self, record):
         self.records.remove(record)
-        self.dirty_bit += 1
+        self.dirty_bit = True
 
     def remove_pointer(self, pointer):
         self.pointers.remove(pointer)
-        self.dirty_bit += 1
+        self.dirty_bit = True
 
     def is_full(self):
         return self.current_size == self.max_size
