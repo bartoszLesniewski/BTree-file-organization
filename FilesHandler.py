@@ -2,7 +2,7 @@ import os.path
 
 from DataPage import DataPage, DataRecord
 from IndexPage import IndexPage, IndexRecord
-from constans import BYTE_ORDER, INT_SIZE, MAX_INT, DATA_RECORD_LENGTH, DATA_RECORD_SIZE, INDEX_BUFFER_SIZE
+from constans import *
 
 
 class FilesHandler:
@@ -10,13 +10,15 @@ class FilesHandler:
         self.index_filename = index_filename
         self.data_filename = data_filename
         self.records_per_page = records_per_page
-        self.last_data_page = None
+        self.last_data_page_number = None
         open(self.index_filename, "w").close()
         open(self.data_filename, "w").close()
         self.index_buffer = []
         self.data_buffer = []
         self.index_reads = 0
         self.index_writes = 0
+        self.data_reads = 0
+        self.data_writes = 0
         self.count_index = False
 
     def save_index_page(self, index_page):
@@ -79,14 +81,15 @@ class FilesHandler:
     def get_index_page(self, page_number):
         for index_page in self.index_buffer:
             if index_page.page_number == page_number:
-                self.move_to_the_beginning(index_page)
+                self.move_to_the_beginning(self.index_buffer, index_page)
                 return index_page
 
         return self.load_index_page(page_number)
 
-    def move_to_the_beginning(self, index_page):
-        self.index_buffer.remove(index_page)
-        self.index_buffer.insert(0, index_page)
+    @staticmethod
+    def move_to_the_beginning(buffer, index_page):
+        buffer.remove(index_page)
+        buffer.insert(0, index_page)
 
     def create_new_index_page(self):
         page = IndexPage(self.records_per_page)
@@ -100,21 +103,14 @@ class FilesHandler:
 
         self.index_buffer = []
 
-    def add_record_to_data_file(self, record):
-        if self.last_data_page is None or self.last_data_page.is_full():
-            self.last_data_page = DataPage(self.records_per_page)
-
-        self.last_data_page.records.append(DataRecord(record[0], record[1:]))
-        self.save_data_page(self.last_data_page)
-
-        return self.last_data_page.page_number
-
     def save_data_page(self, data_page):
-        with open(self.data_filename, "rb+") as file:
-            file.seek((data_page.page_number - 1) * data_page.max_size)
-            serialized_entries = data_page.serialize()
-            for entry in serialized_entries:
-                file.write(entry)
+        if data_page.is_dirty():
+            with open(self.data_filename, "rb+") as file:
+                file.seek((data_page.page_number - 1) * data_page.max_size)
+                serialized_entries = data_page.serialize()
+                for entry in serialized_entries:
+                    file.write(entry)
+            self.data_writes += 1
 
     def load_data_page(self, page_number=1):
         data_page = DataPage(self.records_per_page, page_number)
@@ -137,16 +133,65 @@ class FilesHandler:
                     read_bytes += DATA_RECORD_SIZE
                     data_page.records.append(record)
 
+        self.add_data_page_to_buffer(data_page)
+        self.data_reads += 1
         return data_page
 
-    def reset_index_counters(self):
+    def get_data_page(self, page_number):
+        for data_page in self.data_buffer:
+            if data_page.page_number == page_number:
+                self.move_to_the_beginning(self.data_buffer, data_page)
+                return data_page
+
+        return self.load_data_page(page_number)
+
+    def add_record_to_data_file(self, record):
+        if self.last_data_page_number is None or self.get_data_page(self.last_data_page_number).is_full():
+            last_data_page = self.create_new_data_page()
+            self.last_data_page_number = last_data_page.page_number
+        else:
+            last_data_page = self.get_data_page(self.last_data_page_number)
+
+        last_data_page.add_record(record)
+
+        return self.last_data_page_number
+
+    def remove_record_from_data_file(self, data_page_number, key):
+        data_page = self.get_data_page(data_page_number)
+        data_page.remove_record(key)
+
+    def create_new_data_page(self):
+        page = DataPage(self.records_per_page)
+        # self.save_index_page(page)
+        self.add_data_page_to_buffer(page)
+        return page
+
+    def add_data_page_to_buffer(self, data_page):
+        if len(self.data_buffer) < DATA_BUFFER_SIZE:
+            self.data_buffer.insert(0, data_page)
+        else:
+            lru_page = self.data_buffer.pop()
+            self.save_data_page(lru_page)
+            del lru_page
+            self.data_buffer.insert(0, data_page)
+
+    def flush_data_buffer(self):
+        for data_page in self.data_buffer:
+            self.save_data_page(data_page)
+
+        self.data_buffer = []
+
+    def reset_io_counters(self):
         self.index_reads = 0
         self.index_writes = 0
+        self.data_reads = 0
+        self.data_writes = 0
         self.index_buffer = []
+        self.data_buffer = []
 
-    def print_index_reads_and_writes(self, btree_height):
-        print(f"Number of reads: {self.index_reads}")
-        print(f"Number of writes: {self.index_writes}")
+    def print_reads_and_writes(self, btree_height):
+        print(f"Index     reads: {self.index_reads}  writes: {self.index_writes}")
+        print(f"Data      reads: {self.data_reads}  writes: {self.data_writes}")
         print(f"B-Tree height: {btree_height}")
 
     def print_file(self, file_type):

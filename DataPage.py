@@ -21,8 +21,8 @@ class DataPage:
     def __init__(self, records_per_page, page_number=None):
         self.records_per_page = records_per_page
         DataPage.max_size = records_per_page * DATA_RECORD_SIZE
-        self.current_size = 0
         self.records = []
+        self.dirty_bit = False
 
         if page_number is None:
             self.page_number = DataPage.next_page
@@ -32,15 +32,10 @@ class DataPage:
 
     def add_record(self, record):
         self.records.append(DataRecord(record[0], record[1:]))
-        self.current_size += DATA_RECORD_SIZE
+        self.dirty_bit = True
 
     def is_full(self):
         return len(self.records) == self.records_per_page
-
-    def clear_page(self):
-        self.current_size = 0
-        self.records = []
-        self.page_number += 1
 
     def serialize(self):
         bytes_entries = []
@@ -77,3 +72,7 @@ class DataPage:
                 break
 
         self.records.remove(record_to_remove)
+        self.dirty_bit = True
+
+    def is_dirty(self):
+        return self.dirty_bit

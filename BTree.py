@@ -10,9 +10,10 @@ class BTree:
         self.filesHandler = FilesHandler(2 * d)
 
     def insert(self, record):
-        self.filesHandler.reset_index_counters()
+        self.filesHandler.reset_io_counters()
         data_page_number = self.filesHandler.add_record_to_data_file(record)
         record = IndexRecord(record[0], data_page_number)
+        self.filesHandler.flush_data_buffer()
 
         if self.root_page is None:
             root_node = self.create_root()
@@ -25,7 +26,7 @@ class BTree:
                 self.create_root(record, child_pointer)
 
             self.filesHandler.flush_index_buffer()
-            self.filesHandler.print_index_reads_and_writes(self.h)
+            self.filesHandler.print_reads_and_writes(self.h)
         except ValueError:
             print("Record already exists!")
 
@@ -183,11 +184,13 @@ class BTree:
 
     def print(self, print_records=False):
         if self.root_page is not None:
-            self.filesHandler.reset_index_counters()
+            self.filesHandler.reset_io_counters()
             root_node = self.filesHandler.get_index_page(self.root_page)
             self.visit_node(root_node, print_records)
             print()
-            self.filesHandler.print_index_reads_and_writes(self.h)
+            self.filesHandler.flush_index_buffer()
+            self.filesHandler.flush_data_buffer()
+            self.filesHandler.print_reads_and_writes(self.h)
 
     def visit_node(self, node, print_records=False):
         if not print_records:
@@ -200,7 +203,7 @@ class BTree:
             if not print_records:
                 print(node.get_key(i), end=" ")
             else:
-                data_page = self.filesHandler.load_data_page(node.get_data_page_number(i))
+                data_page = self.filesHandler.get_data_page(node.get_data_page_number(i))
                 data_page.print_record(node.get_key(i))
 
         if not node.is_leaf():
@@ -210,8 +213,11 @@ class BTree:
             print(") ", end="")
 
     def search(self, key, print_message=False):
-        self.filesHandler.reset_index_counters()
+        self.filesHandler.reset_io_counters()
         self.search_by_key(key, self.root_page, print_message)
+        self.filesHandler.flush_index_buffer()
+        self.filesHandler.flush_data_buffer()
+        self.filesHandler.print_reads_and_writes(self.h)
 
     def search_by_key(self, key, page, print_message=False):
         if page is None or self.root_page is None:
@@ -238,7 +244,7 @@ class BTree:
             return self.search_by_key(key, node.get_pointer(i), print_message)
 
     def remove(self, key):
-        self.filesHandler.reset_index_counters()
+        self.filesHandler.reset_io_counters()
 
         if self.root_page is None:
             print("B-Tree is empty!")
@@ -246,14 +252,13 @@ class BTree:
             root_node = self.filesHandler.get_index_page(self.root_page)
             data_page_number = self.remove_from_node(key, root_node)
             if data_page_number:
-                data_page = self.filesHandler.load_data_page(data_page_number)
-                data_page.remove_record(key)
-                self.filesHandler.save_data_page(data_page)
+                self.filesHandler.remove_record_from_data_file(data_page_number, key)
+                self.filesHandler.flush_data_buffer()
             else:
                 print(f"Record can't be deleted because there is no record with key {key}!")
 
         self.filesHandler.flush_index_buffer()
-        self.filesHandler.print_index_reads_and_writes(self.h)
+        self.filesHandler.print_reads_and_writes(self.h)
 
     def remove_from_node(self, key, node):
         i = self.find_position(node, key)
