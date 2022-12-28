@@ -2,19 +2,18 @@ import os.path
 
 from DataPage import DataPage, DataRecord
 from IndexPage import IndexPage, IndexRecord
-from constans import BYTE_ORDER, INT_SIZE, MAX_INT, DATA_RECORD_LENGTH, DATA_RECORD_SIZE
+from constans import BYTE_ORDER, INT_SIZE, MAX_INT, DATA_RECORD_LENGTH, DATA_RECORD_SIZE, INDEX_BUFFER_SIZE
 
 
 class FilesHandler:
-    def __init__(self, records_per_page, btree_height, index_filename="index.txt", data_filename="data.txt"):
+    def __init__(self, records_per_page, index_filename="index.txt", data_filename="data.txt"):
         self.index_filename = index_filename
         self.data_filename = data_filename
         self.records_per_page = records_per_page
         self.last_data_page = None
         open(self.index_filename, "w").close()
         open(self.data_filename, "w").close()
-        self.index_page_buffer = []
-        self.buffer_size = btree_height + 1
+        self.index_buffer = []
         self.index_reads = 0
         self.index_writes = 0
         self.count_index = False
@@ -28,13 +27,6 @@ class FilesHandler:
                     file.write(entry)
 
             self.index_writes += 1
-
-    def get_index_page(self, page_number):
-        for index_page in self.index_page_buffer:
-            if index_page.page_number == page_number:
-                return index_page
-
-        return self.load_index_page(page_number)
 
     def load_index_page(self, page_number=1):  # == load BTreeNode
         index_page = IndexPage(self.records_per_page, page_number)
@@ -65,15 +57,46 @@ class FilesHandler:
 
             # print(index_page.records)
             # print(index_page.pointers)
-        self.index_page_buffer.append(index_page)
+        self.add_index_page_to_buffer(index_page)
         self.index_reads += 1
         return index_page
+
+    def add_index_page_to_buffer(self, index_page):
+        if len(self.index_buffer) < INDEX_BUFFER_SIZE:
+            self.index_buffer.insert(0, index_page)
+        else:
+            lru_page = self.index_buffer.pop()
+            self.save_index_page(lru_page)
+            del lru_page
+            self.index_buffer.insert(0, index_page)
+
+    def remove_from_index_buffer(self, index_page):
+        self.index_buffer.remove(index_page)
+        del index_page
+
+    def get_index_page(self, page_number):
+        for index_page in self.index_buffer:
+            if index_page.page_number == page_number:
+                self.move_to_the_beginning(index_page)
+                return index_page
+
+        return self.load_index_page(page_number)
+
+    def move_to_the_beginning(self, index_page):
+        self.index_buffer.remove(index_page)
+        self.index_buffer.insert(0, index_page)
 
     def create_new_index_page(self):
         page = IndexPage(self.records_per_page)
         # self.save_index_page(page)
-        self.index_page_buffer.append(page)
+        self.add_index_page_to_buffer(page)
         return page
+
+    def flush_index_buffer(self):
+        for index_page in self.index_buffer:
+            self.save_index_page(index_page)
+
+        self.index_buffer = []
 
     def add_record_to_data_file(self, record):
         if self.last_data_page is None or self.last_data_page.is_full():
@@ -117,10 +140,7 @@ class FilesHandler:
     def reset_index_counters(self):
         self.index_reads = 0
         self.index_writes = 0
-        self.index_page_buffer = []
-
-    def update_buffer_size(self, btree_height):
-        self.buffer_size = btree_height + 1
+        self.index_buffer = []
 
     def print_index_reads_and_writes(self, btree_height):
         print(f"Number of reads: {self.index_reads}")

@@ -28,34 +28,27 @@ class IndexPage:
         self.pointers = []
         self.parent_page = None
         self.dirty_bit = False
-        self.access_counter = 0
 
     def add_record(self, position, record):
         self.records.insert(position, record)
         self.dirty_bit = True
-        self.access_counter += 1
         self.dirty_bit = True
 
     def add_pointer(self, position, page_pointer):
         self.pointers.insert(position, page_pointer)
         self.dirty_bit = True
-        self.access_counter += 1
         self.dirty_bit = True
 
     def get_key(self, record_number):
-        self.access_counter += 1
         return self.records[record_number].key
 
     def get_data_page_number(self, record_number):
-        self.access_counter += 1
         return self.records[record_number].data_page_number
 
     def get_record(self, record_number):
-        self.access_counter += 1
         return self.records[record_number]
 
     def get_records(self, index_from=None, index_to=None):
-        self.access_counter += 1
         if not index_from and not index_to:
             return self.records
         if index_from and index_to:
@@ -66,11 +59,9 @@ class IndexPage:
         return self.records[:index_to]
 
     def get_pointer(self, pointer_number):
-        self.access_counter += 1
         return self.pointers[pointer_number]
 
     def get_pointers(self, index_from=None, index_to=None):
-        self.access_counter += 1
         if not index_from and not index_to:
             return self.pointers
         if index_from and index_to:
@@ -84,32 +75,26 @@ class IndexPage:
         return self.parent_page
 
     def set_record(self, record_number, new_record):
-        self.access_counter += 1
         self.records[record_number] = new_record
         self.dirty_bit = True
 
     def set_records(self, new_records):
-        self.access_counter += 1
         self.records = new_records
         self.dirty_bit = True
 
     def set_pointers(self, new_pointers):
-        self.access_counter += 1
         self.pointers = new_pointers
         self.dirty_bit = True
 
     def set_parent(self, new_parent_page):
-        self.access_counter += 1
         self.parent_page = new_parent_page
         self.dirty_bit = True
 
     def remove_record(self, record):
-        self.access_counter += 1
         self.records.remove(record)
         self.dirty_bit += 1
 
     def remove_pointer(self, pointer):
-        self.access_counter += 1
         self.pointers.remove(pointer)
         self.dirty_bit += 1
 

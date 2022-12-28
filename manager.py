@@ -11,9 +11,12 @@ class Mode(Enum):
 class Command(Enum):
     INSERT = "INSERT"
     PRINT = "PRINT"
+    PRINT_RECORDS = "PRINT-RECORDS"
     SEARCH = "SEARCH"
     REMOVE = "REMOVE"
     UPDATE = "UPDATE"
+    PRINT_INDEX_FILE = "PRINT-INDEX-FILE"
+    PRINT_DATA_FILE = "PRINT-DATA-FILE"
     EXIT = "EXIT"
 
 
@@ -80,9 +83,9 @@ class Manager:
                 self.btree.print()
             elif action == "PRINT-RECORDS":
                 self.btree.print(print_records=True)
-            elif action == "PRINT-INDEX-FILE":
+            elif action == Command.PRINT_INDEX_FILE.value:
                 self.btree.filesHandler.print_file("index")
-            elif action == "PRINT-DATA-FILE":
+            elif action == Command.PRINT_DATA_FILE.value:
                 self.btree.filesHandler.print_file("data")
             elif action == Command.SEARCH.value:
                 self.btree.search(value, True)
