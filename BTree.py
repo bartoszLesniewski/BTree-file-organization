@@ -111,19 +111,19 @@ class BTree:
                 if len(left_neighbour.records) < 2 * self.d:
                     self.compensation(left_neighbour, node, parent_node, index - 1, record, pointer)
                     can_compensate = True
-                else:
-                    # if compensation with the left neighbour failed, it will no longer be used
-                    # so we can remove it from the buffer, so it doesn't take up space
-                    self.filesHandler.remove_from_index_buffer(left_neighbour)
+                # else:
+                #     # if compensation with the left neighbour failed, it will no longer be used
+                #     # so we can remove it from the buffer, so it doesn't take up space
+                #     self.filesHandler.remove_from_index_buffer(left_neighbour)
             if not can_compensate and index + 1 < len(parent_node.pointers):
                 right_neighbour = self.filesHandler.get_index_page(parent_node.get_pointer(index + 1))
                 if len(right_neighbour.records) < 2 * self.d:
                     self.compensation(node, right_neighbour, parent_node, index, record, pointer)
                     can_compensate = True
-                else:
-                    # if compensation with the right neighbour failed, it will no longer be used
-                    # so we can remove it from the buffer, so it doesn't take up space
-                    self.filesHandler.remove_from_index_buffer(right_neighbour)
+                # else:
+                #     # if compensation with the right neighbour failed, it will no longer be used
+                #     # so we can remove it from the buffer, so it doesn't take up space
+                #     self.filesHandler.remove_from_index_buffer(right_neighbour)
 
         return can_compensate
 
@@ -293,7 +293,11 @@ class BTree:
             if len(node.records) == 0:
                 if not node.is_leaf():
                     self.root_page = node.get_pointer(0)
-                    self.update_parent(node.get_pointers(), None)
+                    node.set_records([])
+                    node.set_pointers([])
+                    node.set_parent(None)
+                    # self.update_parent(node.get_pointers(), None)  # there is only ony pointer to update its parent
+                    self.update_parent([self.root_page], None)
                 else:
                     self.root_page = None
 
@@ -314,20 +318,20 @@ class BTree:
                 if len(left_neighbour.records) > self.d:
                     self.compensate_with_left_neighbour(node, left_neighbour, parent_node, index - 1)
                     can_compensate = True
-                else:
-                    # if compensation with the left neighbour failed, it will no longer be used
-                    # so we can remove it from the buffer, so it doesn't take up space
-                    self.filesHandler.remove_from_index_buffer(left_neighbour)
+                # else:
+                #     # if compensation with the left neighbour failed, it will no longer be used
+                #     # so we can remove it from the buffer, so it doesn't take up space
+                #     self.filesHandler.remove_from_index_buffer(left_neighbour)
 
             if not can_compensate and index + 1 < len(parent_node.pointers):
                 right_neighbour = self.filesHandler.get_index_page(parent_node.get_pointer(index + 1))
                 if len(right_neighbour.records) > self.d:
                     self.compensate_with_right_neighbour(node, right_neighbour, parent_node, index)
                     can_compensate = True
-                else:
-                    # if compensation with the left neighbour failed, it will no longer be used
-                    # so we can remove it from the buffer, so it doesn't take up space
-                    self.filesHandler.remove_from_index_buffer(right_neighbour)
+                # else:
+                #     # if compensation with the left neighbour failed, it will no longer be used
+                #     # so we can remove it from the buffer, so it doesn't take up space
+                #     self.filesHandler.remove_from_index_buffer(right_neighbour)
 
         return can_compensate
 
@@ -373,7 +377,7 @@ class BTree:
             # self.filesHandler.save_index_page(node)
             self.remove_from_node(predecessor.key, leaf_node)
         else:
-            self.filesHandler.remove_from_index_buffer(left_child)
+            # self.filesHandler.remove_from_index_buffer(left_child)
             right_child = self.filesHandler.get_index_page(node.get_pointer(i + 1))
             if len(right_child.records) > self.d:
                 leaf_node, successor = self.find_successor(right_child)
@@ -382,7 +386,7 @@ class BTree:
                 # self.filesHandler.save_index_page(node)
                 self.remove_from_node(successor.key, leaf_node)
             else:
-                self.filesHandler.remove_from_index_buffer(right_child)
+                # self.filesHandler.remove_from_index_buffer(right_child)
                 left_child = self.filesHandler.get_index_page(node.get_pointer(i))
                 leaf_node, predecessor = self.find_predecessor(left_child)
                 self.filesHandler.get_index_page(node_page_number)
@@ -429,3 +433,7 @@ class BTree:
         # self.filesHandler.save_index_page(neighbour)
         # self.filesHandler.save_index_page(parent)
         self.repair_node_after_removal(self.filesHandler.get_index_page(parent_page_number))
+
+    def update(self, old_key, new_key, record):
+        self.remove(old_key)
+        self.insert([new_key] + record)

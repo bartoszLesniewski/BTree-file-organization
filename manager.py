@@ -37,7 +37,7 @@ class Manager:
         if self.program_mode == Mode.INTERACTIVE:
             self.handle_commands()
         else:
-            self.read_commands_from_file()
+            self.TEST_read_commands_from_file()
 
     @staticmethod
     def display_main_menu():
@@ -91,6 +91,12 @@ class Manager:
                 self.btree.search(value, True)
             elif action == Command.REMOVE.value:
                 self.btree.remove(value)
+            elif action == Command.UPDATE.value:
+                if isinstance(value, list) and len(value) >= 3:
+                    self.btree.update(value[0], value[1], value[2:])
+                else:
+                    print("Insufficient number of parameters for INSERT operation!")
+
             elif action == Command.EXIT.value:
                 break
             else:
@@ -119,13 +125,17 @@ class Manager:
 
         return None, None
 
-    def read_commands_from_file(self):
+    def TEST_read_commands_from_file(self):
         with open("tests.txt", "r") as file:
             for line in file.readlines():
                 if line == "PRINT\n":
                     self.btree.print()
                 elif line == "PRINT-RECORDS\n":
                     self.btree.print(print_records=True)
+                elif line == "PRINT-INDEX-FILE\n":
+                    self.btree.filesHandler.print_file("index")
+                elif line == "PRINT-DATA-FILE\n":
+                    self.btree.filesHandler.print_file("data")
                 else:
                     line = line.split()
                     val = line[1]
