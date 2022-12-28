@@ -96,15 +96,6 @@ class IndexPage:
         self.pointers.remove(pointer)
         self.dirty_bit = True
 
-    def is_full(self):
-        return self.current_size == self.max_size
-
-    def clear_page(self):  # probably never used
-        self.current_size = 0
-        self.records = []
-        self.pointers = []
-        self.page_number += 1  # ?
-
     def serialize(self):
         bytes_entries = []
 
@@ -143,3 +134,9 @@ class IndexPage:
 
     def is_dirty(self):
         return self.dirty_bit
+
+    def is_empty(self):
+        if len(self.records) == 0 and len(self.pointers) == 0 and self.parent_page is None:
+            return True
+
+        return False

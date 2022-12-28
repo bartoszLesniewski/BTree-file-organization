@@ -19,10 +19,14 @@ class FilesHandler:
         self.index_writes = 0
         self.data_reads = 0
         self.data_writes = 0
-        self.count_index = False
+        self.index_empty_pages = []
+        self.data_non_full_pages = []
 
     def save_index_page(self, index_page):
         if index_page.is_dirty():
+            if index_page.is_empty() and index_page.page_number not in self.index_empty_pages:
+                self.index_empty_pages.append(index_page.page_number)
+
             with open(self.index_filename, "rb+") as file:
                 file.seek((index_page.page_number - 1) * index_page.max_size)
                 serialized_entries = index_page.serialize()
@@ -92,7 +96,12 @@ class FilesHandler:
         buffer.insert(0, index_page)
 
     def create_new_index_page(self):
-        page = IndexPage(self.records_per_page)
+        if self.index_empty_pages:
+            page_number = self.index_empty_pages[0]
+            page = self.get_index_page(page_number)
+            self.index_empty_pages.remove(page_number)
+        else:
+            page = IndexPage(self.records_per_page)
         # self.save_index_page(page)
         self.add_index_page_to_buffer(page)
         return page
@@ -159,10 +168,19 @@ class FilesHandler:
     def remove_record_from_data_file(self, data_page_number, key):
         data_page = self.get_data_page(data_page_number)
         data_page.remove_record(key)
+        if data_page_number != self.last_data_page_number and data_page_number not in self.data_non_full_pages:
+            self.data_non_full_pages.append(data_page_number)
 
     def create_new_data_page(self):
-        page = DataPage(self.records_per_page)
-        # self.save_index_page(page)
+        # if there is any page that is not full, then use it
+        if self.data_non_full_pages:
+            page_number = self.data_non_full_pages[0]
+            page = self.get_data_page(page_number)
+            self.data_non_full_pages.remove(page_number)
+        # otherwise, create the next page
+        else:
+            page = DataPage(self.records_per_page)
+
         self.add_data_page_to_buffer(page)
         return page
 
@@ -193,6 +211,7 @@ class FilesHandler:
         print(f"Index     reads: {self.index_reads}  writes: {self.index_writes}")
         print(f"Data      reads: {self.data_reads}  writes: {self.data_writes}")
         print(f"B-Tree height: {btree_height}")
+        print(f"Index empty pages: {self.index_empty_pages}  Data non full pages: {self.data_non_full_pages}")
 
     def print_file(self, file_type):
         print(f"Structure of the {file_type} page:")
@@ -218,4 +237,3 @@ class FilesHandler:
                     read_bytes += INT_SIZE
                 print()
                 page_number += 1
-
