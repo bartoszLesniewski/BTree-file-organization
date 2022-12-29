@@ -232,7 +232,10 @@ class FilesHandler:
                 print(f"PAGE {page_number}: ", end=" ")
                 while page_bytes < max_size:
                     num = int.from_bytes(file.read(INT_SIZE), BYTE_ORDER)
-                    print(num, end=" ")
+                    if num == MAX_INT:
+                        print(".", end=" ")
+                    else:
+                        print(num, end=" ")
                     page_bytes += INT_SIZE
                     read_bytes += INT_SIZE
                 print()
