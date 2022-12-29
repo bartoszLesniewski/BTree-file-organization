@@ -38,7 +38,7 @@ class Manager:
         if self.program_mode == Mode.INTERACTIVE:
             self.handle_commands()
         else:
-            self.TEST_read_commands_from_file()
+            self.read_commands_from_file()
 
     @staticmethod
     def display_main_menu():
@@ -69,45 +69,61 @@ class Manager:
             exit(-1)
 
     def handle_commands(self):
-        while True:
+        self.display_available_commands()
+        run = True
+        while run:
             command = input("Please enter the command: ")
             action, value = self.parse_command(command)
+            run = self.run_command(action, value)
 
-            if action == Command.INSERT.value:
-                if isinstance(value, list):
-                    self.btree.insert(value)
-                else:
-                    self.btree.insert([value] + generate_random_record())
-            elif action == Command.PRINT.value:
-                self.btree.print()
-            elif action == "PRINT-KEYS":
-                self.btree.print()
-            elif action == "PRINT-RECORDS":
-                self.btree.print(print_records=True)
-            elif action == Command.PRINT_INDEX_FILE.value:
-                self.btree.filesHandler.print_file("index")
-            elif action == Command.PRINT_DATA_FILE.value:
-                self.btree.filesHandler.print_file("data")
-            elif action == Command.SEARCH.value:
-                self.btree.search(value, True)
-            elif action == Command.REMOVE.value:
-                self.btree.remove(value)
-            elif action == Command.UPDATE.value:
-                if isinstance(value, list) and len(value) > 1:
-                    if len(value) >= 3:
-                        self.btree.update(value[0], value[1], value[2:])
-                    else:
-                        self.btree.update(value[0], value[1], generate_random_record())
-                else:
-                    print("Insufficient number of parameters for INSERT operation!")
-
-            elif action == Command.EXIT.value:
-                break
+    def run_command(self, action, value):
+        if action == Command.INSERT.value:
+            if isinstance(value, list):
+                self.btree.insert(value)
             else:
-                print("Invalid command.")
+                self.btree.insert([value] + generate_random_record())
+        elif action == Command.PRINT.value:
+            self.btree.print()
+        elif action == "PRINT-KEYS":
+            self.btree.print()
+        elif action == "PRINT-RECORDS":
+            self.btree.print(print_records=True)
+        elif action == Command.PRINT_INDEX_FILE.value:
+            self.btree.filesHandler.print_file("index")
+        elif action == Command.PRINT_DATA_FILE.value:
+            self.btree.filesHandler.print_file("data")
+        elif action == Command.SEARCH.value:
+            self.btree.search(value, True)
+        elif action == Command.REMOVE.value:
+            self.btree.remove(value)
+        elif action == Command.UPDATE.value:
+            if isinstance(value, list) and len(value) > 1:
+                if len(value) >= 3:
+                    self.btree.update(value[0], value[1], value[2:])
+                else:
+                    self.btree.update(value[0], value[1], generate_random_record())
+            else:
+                print("Insufficient number of parameters for INSERT operation!")
 
-    def display_available_commands(self):
-        pass
+        elif action == Command.EXIT.value:
+            return False
+        else:
+            print("Invalid command.")
+
+        return True
+
+    @staticmethod
+    def display_available_commands():
+        print("Available commands:")
+        print("INSERT key [numbers]")
+        print("PRINT")
+        print("PRINT-RECORDS")
+        print("SEARCH key")
+        print("REMOVE key")
+        print("UPDATE old_key new_key [numbers]")
+        print("PRINT-INDEX-FILE")
+        print("PRINT-DATA-FILE")
+        print("EXIT")
 
     @staticmethod
     def parse_command(command):
@@ -138,7 +154,9 @@ class Manager:
             lines = file.readlines()
             for line in lines:
                 if line.strip():
-                    self.parse_command(line.strip())
+                    print(line.strip())
+                    action, value = self.parse_command(line.strip())
+                    self.run_command(action, value)
 
     def TEST_read_commands_from_file(self):
         with open("tests.txt", "r") as file:
