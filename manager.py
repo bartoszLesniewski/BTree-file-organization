@@ -1,5 +1,6 @@
 from enum import Enum
 from BTree import BTree
+from utils import generate_random_record
 
 
 class Mode(Enum):
@@ -76,7 +77,7 @@ class Manager:
                 if isinstance(value, list):
                     self.btree.insert(value)
                 else:
-                    print("Insufficient number of parameters for INSERT operation!")
+                    self.btree.insert([value] + generate_random_record())
             elif action == Command.PRINT.value:
                 self.btree.print()
             elif action == "PRINT-KEYS":
@@ -92,8 +93,11 @@ class Manager:
             elif action == Command.REMOVE.value:
                 self.btree.remove(value)
             elif action == Command.UPDATE.value:
-                if isinstance(value, list) and len(value) >= 3:
-                    self.btree.update(value[0], value[1], value[2:])
+                if isinstance(value, list) and len(value) > 1:
+                    if len(value) >= 3:
+                        self.btree.update(value[0], value[1], value[2:])
+                    else:
+                        self.btree.update(value[0], value[1], generate_random_record())
                 else:
                     print("Insufficient number of parameters for INSERT operation!")
 
@@ -124,6 +128,13 @@ class Manager:
             return action, value
 
         return None, None
+
+    def read_commands_from_file(self):
+        test_file_name = input("Please enter a test file name: ")
+        with open(test_file_name) as file:
+            lines = file.readlines()
+            for line in lines:
+                self.parse_command(line.strip())
 
     def TEST_read_commands_from_file(self):
         with open("tests.txt", "r") as file:
