@@ -106,6 +106,9 @@ class Manager:
             else:
                 print("Invalid command.")
 
+    def display_available_commands(self):
+        pass
+
     @staticmethod
     def parse_command(command):
         if command:
@@ -134,7 +137,8 @@ class Manager:
         with open(test_file_name) as file:
             lines = file.readlines()
             for line in lines:
-                self.parse_command(line.strip())
+                if line.strip():
+                    self.parse_command(line.strip())
 
     def TEST_read_commands_from_file(self):
         with open("tests.txt", "r") as file:

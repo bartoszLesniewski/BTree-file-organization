@@ -9,8 +9,6 @@ class IndexRecord:
 
 class IndexPage:
     next_page = 1
-    number_of_pages = 0
-    number_of_records = 0
     max_size = 0
 
     def __init__(self, records_per_page, page_number=None):

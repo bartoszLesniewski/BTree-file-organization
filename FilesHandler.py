@@ -62,8 +62,6 @@ class FilesHandler:
             if parent_page != MAX_INT:
                 index_page.parent_page = parent_page
 
-            # print(index_page.records)
-            # print(index_page.pointers)
         self.add_index_page_to_buffer(index_page)
         self.index_reads += 1
         return index_page
@@ -80,7 +78,6 @@ class FilesHandler:
     def reduce_usage(self, index_page):
         self.index_buffer.remove(index_page)
         self.index_buffer.append(index_page)
-        # del index_page
 
     def get_index_page(self, page_number):
         for index_page in self.index_buffer:
@@ -102,7 +99,7 @@ class FilesHandler:
             self.index_empty_pages.remove(page_number)
         else:
             page = IndexPage(self.records_per_page)
-        # self.save_index_page(page)
+
         self.add_index_page_to_buffer(page)
         return page
 
@@ -168,16 +165,18 @@ class FilesHandler:
     def remove_record_from_data_file(self, data_page_number, key):
         data_page = self.get_data_page(data_page_number)
         data_page.remove_record(key)
+
         if data_page_number != self.last_data_page_number and data_page_number not in self.data_non_full_pages:
             self.data_non_full_pages.append(data_page_number)
 
     def create_new_data_page(self):
-        # if there is any page that is not full, then use it
+        # If there is any page that is not full, then use it.
         if self.data_non_full_pages:
             page_number = self.data_non_full_pages[0]
             page = self.get_data_page(page_number)
             self.data_non_full_pages.remove(page_number)
-        # otherwise, create the next page
+
+        # Otherwise, create the new page.
         else:
             page = DataPage(self.records_per_page)
 
@@ -211,7 +210,9 @@ class FilesHandler:
         print(f"Index     reads: {self.index_reads}  writes: {self.index_writes}")
         print(f"Data      reads: {self.data_reads}  writes: {self.data_writes}")
         print(f"B-Tree height: {btree_height}")
-        print(f"Index empty pages: {self.index_empty_pages}  Data non full pages: {self.data_non_full_pages}")
+
+        # Uncomment for tests.
+        # print(f"Index empty pages: {self.index_empty_pages}  Data non full pages: {self.data_non_full_pages}")
 
     def print_file(self, file_type):
         print(f"Structure of the {file_type} page:")
