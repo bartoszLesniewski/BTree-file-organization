@@ -27,6 +27,10 @@ class BTree:
 
             self.filesHandler.flush_index_buffer()
             self.filesHandler.print_reads_and_writes(self.h)
+
+            # for experiment
+            self.filesHandler.insert_reads += self.filesHandler.index_reads
+            self.filesHandler.insert_writes += self.filesHandler.index_writes
         except ValueError:
             print("Record already exists!")
 
@@ -239,6 +243,9 @@ class BTree:
         self.filesHandler.flush_data_buffer()
         self.filesHandler.print_reads_and_writes(self.h)
 
+        # for experiment
+        self.filesHandler.search_reads += self.filesHandler.index_reads
+
     def search_by_key(self, key, page, print_message=False):
         if page is None or self.root_page is None:
             if print_message:
@@ -246,6 +253,10 @@ class BTree:
             return False
 
         node = self.filesHandler.get_index_page(page)
+
+        # For experiment uncomment line below and comment line above
+        # node = self.filesHandler.get_index_page(page)
+
         i = 0
 
         while i < len(node.records) and key > node.get_key(i):
@@ -279,6 +290,10 @@ class BTree:
 
         self.filesHandler.flush_index_buffer()
         self.filesHandler.print_reads_and_writes(self.h)
+
+        # for experiment
+        self.filesHandler.remove_reads += self.filesHandler.index_reads
+        self.filesHandler.remove_writes += self.filesHandler.index_writes
 
     def remove_from_node(self, key, node):
         # The function returns the number of the page in the data file from which the record

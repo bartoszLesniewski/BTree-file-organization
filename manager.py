@@ -1,3 +1,5 @@
+import os
+
 from enum import Enum
 from BTree import BTree
 from utils import generate_random_record
@@ -158,27 +160,23 @@ class Manager:
                     action, value = self.parse_command(line.strip())
                     self.run_command(action, value)
 
-    def TEST_read_commands_from_file(self):
-        with open("tests.txt", "r") as file:
-            for line in file.readlines():
-                if line == "PRINT\n":
-                    print("PRINT")
-                    self.btree.print()
-                elif line == "PRINT-RECORDS\n":
-                    self.btree.print(print_records=True)
-                elif line == "PRINT-INDEX-FILE\n":
-                    self.btree.filesHandler.print_file("index")
-                elif line == "PRINT-DATA-FILE\n":
-                    self.btree.filesHandler.print_file("data")
-                else:
-                    line = line.split()
-                    val = line[1]
-                    if line[0] == "INSERT":
-                        val = [int(val), 1]
-                        print(f"INSERT {val}")
-                        self.btree.insert(val)
-                    else:
-                        if int(val) == 74:
-                            pass
-                        print(f"REMOVE {val}")
-                        self.btree.remove(int(val))
+    def run_for_experiment(self, number_of_operations):
+        # number of operations = number of insertions = number of removals
+        self.btree = BTree(2)
+        self.read_commands_from_file()
+        print("----------------------------")
+        print("INSERT operation:")
+        print("Average number of reads: ", self.btree.filesHandler.insert_reads / number_of_operations)
+        print("Average number of writes: ", self.btree.filesHandler.insert_writes / number_of_operations)
+        print("REMOVE operation:")
+        print("Average number of reads: ", self.btree.filesHandler.remove_reads / number_of_operations)
+        print("Average number of writes: ", self.btree.filesHandler.remove_writes / number_of_operations)
+        print(f"\nIndex file size: {os.path.getsize('index.txt') / 1024} kB")
+        print(f"\nData file size: {os.path.getsize('data.txt') / 1024} kB")
+        print("----------------------------")
+        print(f"SEARCH average number of reads: {self.btree.filesHandler.search_reads / 1000}")
+        print("----------------------------")
+        print(f"Average number of reads for INSERT and REMOVE: "
+              f"{(self.btree.filesHandler.insert_reads + self.btree.filesHandler.remove_reads)/4000}")
+        print(f"Average number of writes for INSERT and REMOVE: "
+              f"{(self.btree.filesHandler.insert_writes + self.btree.filesHandler.remove_writes)/4000}")

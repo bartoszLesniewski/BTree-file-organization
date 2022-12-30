@@ -22,6 +22,13 @@ class FilesHandler:
         self.index_empty_pages = []
         self.data_non_full_pages = []
 
+        # for experiment
+        self.insert_reads = 0
+        self.insert_writes = 0
+        self.remove_reads = 0
+        self.remove_writes = 0
+        self.search_reads = 0
+
     def save_index_page(self, index_page):
         if index_page.is_dirty():
             if index_page.is_empty() and index_page.page_number not in self.index_empty_pages:
@@ -173,14 +180,14 @@ class FilesHandler:
         # If there is any page that is not full, then use it.
         if self.data_non_full_pages:
             page_number = self.data_non_full_pages[0]
-            page = self.get_data_page(page_number)
+            page = self.get_data_page(page_number)  # page was added to buffer
             self.data_non_full_pages.remove(page_number)
 
         # Otherwise, create the new page.
         else:
             page = DataPage(self.records_per_page)
+            self.add_data_page_to_buffer(page)
 
-        self.add_data_page_to_buffer(page)
         return page
 
     def add_data_page_to_buffer(self, data_page):
